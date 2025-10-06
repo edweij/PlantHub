@@ -1,0 +1,20 @@
+name: PlantHub
+slug: planthub
+version: "0.1.0"
+description: Irrigation scheduler & plant manager (Blazor + SQLite + HA API)
+startup: services
+init: false
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:sprout
+arch:
+  - amd64
+  - aarch64
+map:
+  - config:rw
+  - ssl:ro
+options:
+  log_level: info
+schema:
+  log_level: list(info|debug|warning|error)?
+image: null
