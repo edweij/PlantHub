@@ -1,0 +1,3 @@
+*.sh text eol=lf
+addon/rootfs/**/run text eol=lf
+addon/rootfs/**/finish text eol=lf
