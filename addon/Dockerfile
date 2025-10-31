@@ -1,44 +1,43 @@
 # =========================
-# Build stage (Blazor Server)
+# Build stage (Blazor Server)  **ALPINE SDK**
 # =========================
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 WORKDIR /src
 
-# Copy solution & projects (we'll add these files in later steps)
-# If you rename projects/solution later, update paths below accordingly.
+# Copy solution & project
 COPY PlantHub.sln ./
 COPY PlantHub.Web/ ./PlantHub.Web/
 
-# Pick RID based on TARGETPLATFORM so we can build multi-arch images
-# (linux-x64 for amd64, linux-arm64 for aarch64)
+# Map platform -> musl RID
+# Vi försöker först TARGETPLATFORM (buildx), annars kollar vi BUILD_ARCH (HA builder)
 ARG TARGETPLATFORM
-RUN echo "Building for TARGETPLATFORM=${TARGETPLATFORM}" && \
-    if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then export RID=linux-arm64; else export RID=linux-x64; fi && \
+ARG BUILD_ARCH
+RUN echo "TARGETPLATFORM=${TARGETPLATFORM} BUILD_ARCH=${BUILD_ARCH}" && \
+    if [ "${TARGETPLATFORM}" = "linux/arm64" ] || [ "${BUILD_ARCH}" = "aarch64" ]; then \
+        export RID=linux-musl-arm64; \
+    else \
+        export RID=linux-musl-x64; \
+    fi && \
     dotnet publish PlantHub.Web/PlantHub.Web.csproj \
       -c Release -r $RID \
+      --self-contained true \
       -p:PublishSingleFile=true \
       -p:PublishTrimmed=true \
-      --self-contained true \
+      -p:InvariantGlobalization=true \
       -o /out
 
 # =========================
 # Runtime stage (Home Assistant base)
 # =========================
 FROM ghcr.io/home-assistant/base:14.1.0
-
-# Keep image small and deterministic
-ENV ASPNETCORE_URLS=http://0.0.0.0:8099 \
-    DOTNET_EnableDiagnostics=0 \
-    COMPlus_EnableDiagnostics=0
-
 WORKDIR /app
+
+# Copy published self-contained app
 COPY --from=build /out/ ./
 
-# s6 services & scripts (we add these files in the repo under rootfs/)
+# s6 services & scripts
 COPY rootfs/ /
 RUN chmod +x /etc/services.d/planthub/run /etc/services.d/planthub/finish
 
-# Ingress uses internal port only; don't publish externally
+# Ingress internal port
 EXPOSE 8099
-
-# s6-overlay will run our /etc/services.d/planthub/run automatically

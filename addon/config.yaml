@@ -15,6 +15,10 @@ map:
   - ssl:ro
 options:
   log_level: info
+  base_url: "http://homeassistant:8123"
+  token: ""
 schema:
   log_level: list(info|debug|warning|error)?
+  base_url: str
+  token: str
 image: null
