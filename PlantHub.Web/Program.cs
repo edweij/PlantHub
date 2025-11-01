@@ -22,6 +22,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.DetailedErrors = true);
 
@@ -49,6 +50,16 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.Use((ctx, next) =>
+{
+    var ingressPath = ctx.Request.Headers["X-Ingress-Path"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(ingressPath))
+    {
+        ctx.Request.PathBase = ingressPath;
+    }
+    return next();
+});
+
 // --- Apply forwarded headers (HA proxy / ingress) ---
 app.UseForwardedHeaders();
 
@@ -67,7 +78,6 @@ app.Use((ctx, next) =>
 app.UseAntiforgery();
 
 var provider = new FileExtensionContentTypeProvider();
-// Lägg till extra typer som HA ibland tappar
 provider.Mappings[".css"] = "text/css";
 provider.Mappings[".js"] = "application/javascript";
 provider.Mappings[".json"] = "application/json";
@@ -75,8 +85,11 @@ provider.Mappings[".json"] = "application/json";
 app.UseStaticFiles(new StaticFileOptions
 {
     ContentTypeProvider = provider,
-    ServeUnknownFileTypes = false // låt Kestrel hantera resten
+    // Viktigt: låt Kestrel sätta rätt typ när den kan
+    ServeUnknownFileTypes = false
 });
+
+app.MapStaticAssets();
 
 // Optional health endpoint
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
