@@ -1,7 +1,6 @@
 using PlantHub.Web.Components;
 using PlantHub.Web.Lib;
-
-
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,33 +8,33 @@ var builder = WebApplication.CreateBuilder(args);
 var cfg = builder.Configuration;
 var supervisorToken = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
 
-//var envBaseUrl = Environment.GetEnvironmentVariable("PLANTHUB__BASEURL"); // e.g. http://homeassistant:8123
-//var envToken = Environment.GetEnvironmentVariable("PLANTHUB__TOKEN");
-
-//var haBaseUrlRaw = cfg["HA:BaseUrl"] ?? envBaseUrl;   // might be without /api
-//var haToken = cfg["HA:Token"] ?? envToken;
-
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
+// --- Ingress / Reverse proxy fix ---
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                               ForwardedHeaders.XForwardedProto |
+                               ForwardedHeaders.XForwardedHost;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// --- HA Client injection ---
 builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
 {
-    // 1) Home Assistant add-on: Supervisor-token vinner alltid
     var supervisorToken = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
     if (!string.IsNullOrWhiteSpace(supervisorToken))
         return new HomeAssistantClient("http://supervisor/core/api", supervisorToken);
 
-    // 2) Lokal/debug: läs från config eller env (LL token)
-    //    Tillåt både "HA:BaseUrl"/"HA:Token" (appsettings/user-secrets)
-    //    och fallback till PLANTHUB__BASEURL/PLANTHUB__TOKEN (env)
     var cfg = builder.Configuration;
-    var baseUrl = cfg["HA:BaseUrl"] ?? Environment.GetEnvironmentVariable("PLANTHUB__BASEURL");   // e.g. http://homeassistant.local:8123
+    var baseUrl = cfg["HA:BaseUrl"] ?? Environment.GetEnvironmentVariable("PLANTHUB__BASEURL");
     var token = cfg["HA:Token"] ?? Environment.GetEnvironmentVariable("PLANTHUB__TOKEN");
 
     if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(token))
         return new HomeAssistantClient(baseUrl, token);
 
-    // 3) Annars avstängt (UI kan visa "disabled")
     return new HomeAssistantClient(null, null);
 });
 
@@ -46,12 +45,34 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// --- Apply forwarded headers (HA proxy / ingress) ---
+app.UseForwardedHeaders();
 
+// --- Handle HA Ingress path ---
+app.Use((ctx, next) =>
+{
+    var ingressPath = ctx.Request.Headers["X-Ingress-Path"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(ingressPath))
+    {
+        ctx.Request.PathBase = ingressPath;
+    }
+    return next();
+});
+
+// --- Standard Blazor setup ---
 app.UseAntiforgery();
+//app.MapStaticAssets();
+// Ensure correct content type for static assets (HA sometimes serves text/plain)
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true,
+    DefaultContentType = "application/octet-stream"
+});
 
-app.MapStaticAssets();
+// Optional health endpoint
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
 
+// Map Razor components (Blazor Server interactive)
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();

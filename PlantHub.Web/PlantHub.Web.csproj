@@ -4,18 +4,11 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 
-		<!-- Single-file publish (RID och self-contained sätts via Dockerfile) -->
-		<PublishSingleFile>true</PublishSingleFile>
-		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-		<IncludeStaticWebAssets>true</IncludeStaticWebAssets>
-		<EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
-
-		<!-- Optional but nice in containers -->
+		<!-- Behåll self-contained men inte single-file -->
+		<PublishSingleFile>false</PublishSingleFile>
+		<PublishTrimmed>false</PublishTrimmed>
 		<InvariantGlobalization>true</InvariantGlobalization>
 	</PropertyGroup>
 
-	<!-- Ensure wwwroot & friends are always copied into publish output --><!--
-	<ItemGroup>
-		<Content Include="wwwroot/**" CopyToPublishDirectory="PreserveNewest" />
-	</ItemGroup>-->
+	
 </Project>
