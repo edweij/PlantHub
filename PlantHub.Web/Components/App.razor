@@ -1,19 +1,30 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@inject IHttpContextAccessor HttpContextAccessor
 
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="./" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["PlantHub.Web.styles.css"]" />
+
+    @{
+        var ingressPath = HttpContextAccessor.HttpContext?.Request?.Headers["X-Ingress-Path"].FirstOrDefault();
+        var fallback = "./";
+        var baseHref = string.IsNullOrEmpty(ingressPath) ? fallback : $"{ingressPath}/";
+    }
+    <base href="@baseHref" />
+
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="PlantHub.Web.styles.css" />
     <ImportMap />
     <HeadOutlet />
 </head>
 
 <body>
     <Routes />
+    <p>ingress path = @ingressPath</p>
+    <p>fallback = @fallback</p>
+    <p>base href = @baseHref</p>
     <script src="_framework/blazor.web.js"></script>
 </body>
-
 </html>
+
