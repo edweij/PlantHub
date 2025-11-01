@@ -11,7 +11,7 @@
         var fallback = "./";
         var baseHref = string.IsNullOrEmpty(ingressPath) ? fallback : $"{ingressPath}/";
     }
-    <base href="./" />
+    <base href="@baseHref" />
 
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="PlantHub.Web.styles.css" />

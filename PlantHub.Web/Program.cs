@@ -21,6 +21,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+builder.Services.AddHttpContextAccessor();
+
 // --- HA Client injection ---
 builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
 {
