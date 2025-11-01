@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.StaticFiles;
 using PlantHub.Web.Components;
 using PlantHub.Web.Lib;
-using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.DetailedErrors = true);
 
 // --- HA Client injection ---
 builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
@@ -63,12 +65,17 @@ app.Use((ctx, next) =>
 
 // --- Standard Blazor setup ---
 app.UseAntiforgery();
-//app.MapStaticAssets();
-// Ensure correct content type for static assets (HA sometimes serves text/plain)
+
+var provider = new FileExtensionContentTypeProvider();
+// Lägg till extra typer som HA ibland tappar
+provider.Mappings[".css"] = "text/css";
+provider.Mappings[".js"] = "application/javascript";
+provider.Mappings[".json"] = "application/json";
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    ServeUnknownFileTypes = true,
-    DefaultContentType = "application/octet-stream"
+    ContentTypeProvider = provider,
+    ServeUnknownFileTypes = false // låt Kestrel hantera resten
 });
 
 // Optional health endpoint
