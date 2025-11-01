@@ -8,6 +8,7 @@
 		<PublishSingleFile>false</PublishSingleFile>
 		<PublishTrimmed>false</PublishTrimmed>
 		<InvariantGlobalization>true</InvariantGlobalization>
+		<BaseHref>./</BaseHref>
 	</PropertyGroup>
 
 	
