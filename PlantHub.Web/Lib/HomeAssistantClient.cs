@@ -32,6 +32,17 @@ public sealed class HomeAssistantClient : IHomeAssistantClient
     {
         if (!IsEnabled) return Array.Empty<HaAreaLite>();
 
+        var probeUri = _baseUri!;
+        try
+        {
+            var code = await ProbeHttpAsync(probeUri, ct);
+            Console.WriteLine($"[PlantHub] Probe {probeUri} -> HTTP {code}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlantHub] Probe {probeUri} failed: {ex.Message}");
+        }
+
         var wsUri = BuildWebSocketUri(_baseUri!);
         using var ws = new ClientWebSocket();
 
@@ -76,6 +87,16 @@ public sealed class HomeAssistantClient : IHomeAssistantClient
     }
 
     // --- helpers ---
+
+    private async Task<int> ProbeHttpAsync(Uri baseUri, CancellationToken ct)
+    {
+        using var http = new HttpClient { BaseAddress = baseUri };
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _token);
+        using var resp = await http.GetAsync("", ct); // e.g. http://supervisor/core/api/
+        return (int)resp.StatusCode; // 200/401/403 etc.
+    }
+
     private static Uri BuildWebSocketUri(Uri baseUri)
     {
         var scheme = baseUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";

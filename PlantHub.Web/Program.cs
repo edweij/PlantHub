@@ -41,25 +41,30 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.DetailedErrors = true);
 
 // --- HA Client injection ---
+// --- HA Client injection ---
 builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
 {
-    // Läs båda varianterna
-    var supervisorToken =
+    var sup =
         Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN")
         ?? Environment.GetEnvironmentVariable("HASSIO_TOKEN");
-
-    if (!string.IsNullOrWhiteSpace(supervisorToken))
-        return new HomeAssistantClient("http://supervisor/core/api", supervisorToken);
 
     var cfg = builder.Configuration;
     var baseUrl = cfg["HA:BaseUrl"] ?? Environment.GetEnvironmentVariable("PLANTHUB__BASEURL");
     var token = cfg["HA:Token"] ?? Environment.GetEnvironmentVariable("PLANTHUB__TOKEN");
 
-    if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(token))
-        return new HomeAssistantClient(baseUrl, token);
+    if (!string.IsNullOrWhiteSpace(sup))
+    {
+        Console.WriteLine("[PlantHub] HA mode = Supervisor proxy (token present). Base= http://supervisor/core/api");
+        return new HomeAssistantClient("http://supervisor/core/api", sup);
+    }
 
-    // valfritt: liten logg
-    Console.WriteLine("[PlantHub] HomeAssistantClient disabled (no token).");
+    if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(token))
+    {
+        Console.WriteLine($"[PlantHub] HA mode = Direct (LLAT). Base= {baseUrl}");
+        return new HomeAssistantClient(baseUrl, token);
+    }
+
+    Console.WriteLine("[PlantHub] HA mode = Disabled (no token)");
     return new HomeAssistantClient(null, null);
 });
 
