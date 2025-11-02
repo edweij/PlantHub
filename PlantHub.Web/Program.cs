@@ -15,6 +15,17 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 var dataProtectionKeys = "/data/aspnet-keys"; // add-onens persistenta volym
 Directory.CreateDirectory(dataProtectionKeys);
 
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeys))
+    .SetApplicationName("PlantHub"); // viktigt: stabilt namn över builds
+
+builder.Services.AddAntiforgery(o =>
+{
+    o.Cookie.Name = "plh.af";
+    o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
 // --- Ingress / Reverse proxy fix ---
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -61,8 +72,14 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// --- Apply forwarded headers (HA proxy / ingress) ---
-app.UseForwardedHeaders();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor,
+    KnownNetworks = { }, // rensa default
+    KnownProxies = { },  // rensa default
+    RequireHeaderSymmetry = false,
+    ForwardLimit = null
+}); 
 
 // --- Handle HA Ingress path / reverse proxy prefix ---
 app.Use((ctx, next) =>
@@ -80,8 +97,18 @@ app.Use((ctx, next) =>
     return next();
 });
 
+// --- Serve static files from wwwroot ---
+// Flytta upp detta före antiforgery
 app.UseStaticFiles();
 
+// (valfritt) logga vad vi fick, vid felsökning
+// app.Use(async (ctx, next) => {
+//     Console.WriteLine($"PathBase='{ctx.Request.PathBase}', Path='{ctx.Request.Path}'");
+//     await next();
+// });
+
+// --- Anti-forgery & resten ---
+app.UseAntiforgery();
 
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
