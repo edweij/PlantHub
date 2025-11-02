@@ -1,7 +1,8 @@
-﻿@inject IHttpContextAccessor HttpContextAccessor
+﻿@using System.Reflection
+@inject IHttpContextAccessor HttpContextAccessor
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,6 +14,7 @@
     }
     <base href="@baseHref" />
 
+    <!-- OBS: vi behåller länken till app.css, som nu är kompilerad från app.scss -->
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="PlantHub.Web.styles.css" />
     <ImportMap />
@@ -20,12 +22,28 @@
 </head>
 
 <body>
-    <p>v. 0.1.29</p>
-    <Routes />
-    <p>ingress path = @ingressPath</p>
-    <p>fallback = @fallback</p>
-    <p>base href = @baseHref</p>
+    <div class="app">
+        <main class="app-main">
+            <Routes />           
+        </main>
+
+        <footer class="app-footer">
+            <div>PlantHub</div>
+            <div class="right">v. @VersionText</div>
+        </footer>
+    </div>
+
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>
+
+@code {
+    private static string VersionText =>
+        Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion
+        ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+        ?? "0.0.0";
+}
+
 

@@ -10,6 +10,12 @@
 		<InvariantGlobalization>true</InvariantGlobalization>
 	</PropertyGroup>
 	<ItemGroup>
+	  <Content Remove="compilerconfig.json" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Include="compilerconfig.json" />
+	</ItemGroup>
+	<ItemGroup>
 		<Content Update="wwwroot\**\*">
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>

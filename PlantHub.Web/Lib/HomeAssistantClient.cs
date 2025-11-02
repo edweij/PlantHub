@@ -34,6 +34,15 @@ public sealed class HomeAssistantClient : IHomeAssistantClient
 
         var wsUri = BuildWebSocketUri(_baseUri!);
         using var ws = new ClientWebSocket();
+
+        if (!string.IsNullOrWhiteSpace(_token))
+            ws.Options.SetRequestHeader("Authorization", $"Bearer {_token}");
+
+        ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);                                                                  
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(10));
+        await ws.ConnectAsync(wsUri, cts.Token);
+
         await ws.ConnectAsync(wsUri, ct);
 
         // auth_required
