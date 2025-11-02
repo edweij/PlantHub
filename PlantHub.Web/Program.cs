@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using PlantHub.Web.Components;
 using PlantHub.Web.Lib;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +42,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.DetailedErrors = true);
 
 // --- HA Client injection ---
-// --- HA Client injection ---
 builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
 {
     var sup =
@@ -77,14 +77,35 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+// Läs ev. från env om du vill göra det konfigurerbart
+var proxyIp = Environment.GetEnvironmentVariable("PLANTHUB__PROXY_IP") ?? "172.30.32.1";
+
+// Om du föredrar ett helt subnet istället: "172.30.32.0/24"
+var useSubnet = true;
+
+var fwd = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor,
-    KnownNetworks = { }, // rensa default
-    KnownProxies = { },  // rensa default
+
+    // I HA/Ingress kan header-symmetri variera, gör det tolerant:
     RequireHeaderSymmetry = false,
-    ForwardLimit = null
-}); 
+
+    // Rimligt tak om du bara har en proxy framför dig.
+    ForwardLimit = 2
+};
+
+if (useSubnet)
+{
+    // Tillåt hela hassio-nätet 172.30.32.0/24
+    fwd.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("172.30.32.0"), 24));
+}
+else
+{
+    // Tillåt en specifik proxy
+    fwd.KnownProxies.Add(IPAddress.Parse(proxyIp));
+}
+
+app.UseForwardedHeaders(fwd);
 
 // --- Handle HA Ingress path / reverse proxy prefix ---
 app.Use((ctx, next) =>

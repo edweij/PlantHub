@@ -47,7 +47,11 @@ public sealed class HomeAssistantClient : IHomeAssistantClient
         using var ws = new ClientWebSocket();
 
         if (!string.IsNullOrWhiteSpace(_token))
+        {
             ws.Options.SetRequestHeader("Authorization", $"Bearer {_token}");
+            ws.Options.SetRequestHeader("X-Supervisor-Token", _token); 
+            ws.Options.SetRequestHeader("Origin", _baseUri!.GetLeftPart(UriPartial.Authority));
+        }
 
         ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);                                                                  
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
