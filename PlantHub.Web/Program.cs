@@ -77,30 +77,22 @@ app.Use((ctx, next) =>
 // --- Standard Blazor setup ---
 app.UseAntiforgery();
 
-var provider = new FileExtensionContentTypeProvider();
-provider.Mappings[".css"] = "text/css";
-provider.Mappings[".js"] = "application/javascript";
-provider.Mappings[".json"] = "application/json";
+//var provider = new FileExtensionContentTypeProvider();
+//provider.Mappings[".css"] = "text/css";
+//provider.Mappings[".js"] = "application/javascript";
+//provider.Mappings[".json"] = "application/json";
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    ContentTypeProvider = provider,
-    // Viktigt: låt Kestrel sätta rätt typ när den kan
-    ServeUnknownFileTypes = false
-});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    ContentTypeProvider = provider,
+//    // Viktigt: låt Kestrel sätta rätt typ när den kan
+//    ServeUnknownFileTypes = false
+//});
 
 app.MapStaticAssets();
 
 // Optional health endpoint
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
-
-app.MapGet("/diag/appcss", (IWebHostEnvironment env) =>
-{
-    var path = Path.Combine(env.WebRootPath ?? "wwwroot", "app.css");
-    if (!System.IO.File.Exists(path)) return Results.NotFound("app.css saknas");
-    var bytes = System.IO.File.ReadAllBytes(path);
-    return Results.Text($"app.css length = {bytes.Length}");
-});
 
 // Map Razor components (Blazor Server interactive)
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
