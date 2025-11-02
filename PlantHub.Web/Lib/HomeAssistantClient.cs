@@ -42,8 +42,7 @@ public sealed class HomeAssistantClient : IHomeAssistantClient
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(10));
         await ws.ConnectAsync(wsUri, cts.Token);
-
-        await ws.ConnectAsync(wsUri, ct);
+        
 
         // auth_required
         _ = await ReceiveJsonAsync(ws, ct);
