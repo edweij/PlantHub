@@ -9,6 +9,16 @@
 		<PublishTrimmed>false</PublishTrimmed>
 		<InvariantGlobalization>true</InvariantGlobalization>
 	</PropertyGroup>
+	<ItemGroup>
+		<Content Update="wwwroot\**\*">
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+	<ItemGroup>
+	  <Content Update="wwwroot\app.css">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
 
 	
 </Project>
