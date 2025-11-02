@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.StaticFiles;
 using PlantHub.Web.Components;
 using PlantHub.Web.Lib;
 
@@ -52,52 +51,39 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.Use((ctx, next) =>
-{
-    var ingressPath = ctx.Request.Headers["X-Ingress-Path"].FirstOrDefault();
-    if (!string.IsNullOrEmpty(ingressPath))
-    {
-        ctx.Request.PathBase = ingressPath;
-    }
-    return next();
-});
-
 // --- Apply forwarded headers (HA proxy / ingress) ---
 app.UseForwardedHeaders();
 
-// --- Handle HA Ingress path ---
+// --- Handle HA Ingress path / reverse proxy prefix ---
 app.Use((ctx, next) =>
 {
-    var ingressPath = ctx.Request.Headers["X-Ingress-Path"].FirstOrDefault();
-    if (!string.IsNullOrEmpty(ingressPath))
+    var prefix =
+        ctx.Request.Headers["X-Forwarded-Prefix"].FirstOrDefault()
+        ?? ctx.Request.Headers["X-Ingress-Path"].FirstOrDefault();
+
+    if (!string.IsNullOrEmpty(prefix))
     {
-        ctx.Request.PathBase = ingressPath;
+        // Sätt PathBase så att /api/hassio_ingress/<token> skalas av
+        ctx.Request.PathBase = prefix;
     }
+
     return next();
 });
 
-// --- Standard Blazor setup ---
-app.UseAntiforgery();
-
-//var provider = new FileExtensionContentTypeProvider();
-//provider.Mappings[".css"] = "text/css";
-//provider.Mappings[".js"] = "application/javascript";
-//provider.Mappings[".json"] = "application/json";
-
-//app.UseStaticFiles(new StaticFileOptions
-//{
-//    ContentTypeProvider = provider,
-//    // Viktigt: låt Kestrel sätta rätt typ när den kan
-//    ServeUnknownFileTypes = false
-//});
-
-//app.MapStaticAssets();
+// --- Serve static files from wwwroot ---
+// Flytta upp detta före antiforgery
 app.UseStaticFiles();
 
-// Optional health endpoint
-app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
+// (valfritt) logga vad vi fick, vid felsökning
+// app.Use(async (ctx, next) => {
+//     Console.WriteLine($"PathBase='{ctx.Request.PathBase}', Path='{ctx.Request.Path}'");
+//     await next();
+// });
 
-// Map Razor components (Blazor Server interactive)
+// --- Anti-forgery & resten ---
+app.UseAntiforgery();
+
+app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();
