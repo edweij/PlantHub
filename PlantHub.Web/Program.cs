@@ -43,6 +43,8 @@ builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
     return new HomeAssistantClient(null, null);
 });
 
+builder.WebHost.UseStaticWebAssets();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -89,7 +91,8 @@ app.UseAntiforgery();
 //    ServeUnknownFileTypes = false
 //});
 
-app.MapStaticAssets();
+//app.MapStaticAssets();
+app.UseStaticFiles();
 
 // Optional health endpoint
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
