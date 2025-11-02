@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using PlantHub.Web.Components;
 using PlantHub.Web.Lib;
@@ -10,6 +11,22 @@ var supervisorToken = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
 
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+
+var dataProtectionKeys = "/data/aspnet-keys"; // add-onens persistenta volym
+Directory.CreateDirectory(dataProtectionKeys);
+
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeys))
+    .SetApplicationName("PlantHub"); // viktigt: stabilt namn över builds
+
+// (valfritt men bra i ingress)
+builder.Services.AddAntiforgery(o =>
+{
+    o.Cookie.Name = "plh.af";
+    o.Cookie.SameSite = SameSiteMode.Lax;
+    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
 
 // --- Ingress / Reverse proxy fix ---
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -28,7 +45,11 @@ builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.Deta
 // --- HA Client injection ---
 builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
 {
-    var supervisorToken = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
+    // Läs båda varianterna
+    var supervisorToken =
+        Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN")
+        ?? Environment.GetEnvironmentVariable("HASSIO_TOKEN");
+
     if (!string.IsNullOrWhiteSpace(supervisorToken))
         return new HomeAssistantClient("http://supervisor/core/api", supervisorToken);
 
@@ -39,6 +60,8 @@ builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
     if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(token))
         return new HomeAssistantClient(baseUrl, token);
 
+    // valfritt: liten logg
+    Console.WriteLine("[PlantHub] HomeAssistantClient disabled (no token).");
     return new HomeAssistantClient(null, null);
 });
 
