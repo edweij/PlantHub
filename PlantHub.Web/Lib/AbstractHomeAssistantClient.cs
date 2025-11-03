@@ -33,15 +33,24 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
     protected static Uri BuildWebSocketUri(Uri baseUri)
     {
         var scheme = baseUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
-        var path = baseUri.AbsolutePath.TrimEnd('/');
+        var path = baseUri.AbsolutePath.TrimEnd('/'); // ex: "/core/api"
 
         string wsPath;
         if (path.EndsWith("/core/api", StringComparison.OrdinalIgnoreCase))
-            wsPath = path[..^4] + "websocket";   // "/core/api" -> "/core/websocket"
+        {
+            // "/core/api" -> "/core/websocket"
+            wsPath = path[..^4] + "/websocket"; // lägg till "/" före websocket
+        }
         else if (path.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
-            wsPath = path[..^3] + "websocket";   // "/api" -> "/websocket"
+        {
+            // "/api" -> "/websocket"
+            wsPath = path[..^3] + "websocket";   // här finns redan ett "/" före "api"
+        }
         else
+        {
+            // fallback: lägg till "/api/websocket"
             wsPath = (path.Length == 0 ? "" : path) + "/api/websocket";
+        }
 
         var ub = new UriBuilder(baseUri) { Scheme = scheme, Path = wsPath };
         return ub.Uri;
