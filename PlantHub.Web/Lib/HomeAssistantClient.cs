@@ -6,11 +6,7 @@ namespace PlantHub.Web.Lib;
 
 public record HaAreaLite(string Id, string Name, string? FloorId);
 
-public interface IHomeAssistantClient
-{
-    bool IsEnabled { get; }
-    Task<IReadOnlyList<HaAreaLite>> GetAreasAsync(CancellationToken ct = default);
-}
+
 
 public sealed class HomeAssistantClient : IHomeAssistantClient
 {
@@ -95,8 +91,7 @@ public sealed class HomeAssistantClient : IHomeAssistantClient
     private async Task<int> ProbeHttpAsync(Uri baseUri, CancellationToken ct)
     {
         using var http = new HttpClient { BaseAddress = baseUri };
-        http.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _token);
+        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _token);
         using var resp = await http.GetAsync("", ct); // e.g. http://supervisor/core/api/
         return (int)resp.StatusCode; // 200/401/403 etc.
     }

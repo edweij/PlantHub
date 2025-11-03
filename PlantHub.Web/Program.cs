@@ -7,8 +7,12 @@ using System.Net;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Read env/config ----
+var sup = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN")
+          ?? Environment.GetEnvironmentVariable("HASSIO_TOKEN");
+
 var cfg = builder.Configuration;
-var supervisorToken = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
+var baseUrl = cfg["HA:BaseUrl"] ?? Environment.GetEnvironmentVariable("PLANTHUB__BASEURL");
+var token = cfg["HA:Token"] ?? Environment.GetEnvironmentVariable("PLANTHUB__TOKEN");
 
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -41,32 +45,22 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.DetailedErrors = true);
 
-// --- HA Client injection ---
-builder.Services.AddSingleton<IHomeAssistantClient>(_ =>
+if (!string.IsNullOrWhiteSpace(sup))
 {
-    var sup =
-        Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN")
-        ?? Environment.GetEnvironmentVariable("HASSIO_TOKEN");
-
-    var cfg = builder.Configuration;
-    var baseUrl = cfg["HA:BaseUrl"] ?? Environment.GetEnvironmentVariable("PLANTHUB__BASEURL");
-    var token = cfg["HA:Token"] ?? Environment.GetEnvironmentVariable("PLANTHUB__TOKEN");
-
-    if (!string.IsNullOrWhiteSpace(sup))
-    {
-        Console.WriteLine("[PlantHub] HA mode = Supervisor proxy (token present). Base= http://supervisor/core/api");
-        return new HomeAssistantClient("http://supervisor/core/api", sup);
-    }
-
-    if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(token))
-    {
-        Console.WriteLine($"[PlantHub] HA mode = Direct (LLAT). Base= {baseUrl}");
-        return new HomeAssistantClient(baseUrl, token);
-    }
-
+    Console.WriteLine("[PlantHub] HA mode = Supervisor proxy (token present). Base= http://supervisor/core/api");
+    // supervisor proxy base url is usually http://supervisor/core/api when running as addon
+    builder.Services.AddSingleton<IHomeAssistantClient>(sp => new HomeAssistantSupervisorClient("http://supervisor/core/api", sup));
+}
+else if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(token))
+{
+    Console.WriteLine($"[PlantHub] HA mode = Direct (LLAT). Base= {baseUrl}");
+    builder.Services.AddSingleton<IHomeAssistantClient>(sp => new HomeAssistantLlTokenClient(baseUrl, token));
+}
+else
+{
     Console.WriteLine("[PlantHub] HA mode = Disabled (no token)");
-    return new HomeAssistantClient(null, null);
-});
+    builder.Services.AddSingleton<IHomeAssistantClient, DisabledHomeAssistantClient>();
+}
 
 builder.WebHost.UseStaticWebAssets();
 
