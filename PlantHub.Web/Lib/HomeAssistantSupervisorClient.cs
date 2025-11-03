@@ -15,7 +15,6 @@ public sealed class HomeAssistantSupervisorClient : AbstractHomeAssistantClient
         var probeUri = BaseUri!;
         try
         {
-            // For supervisor proxy we might not be allowed Authorization header, but a simple probe is fine
             var code = await ProbeHttpAsync(probeUri, Token!, ct);
             Console.WriteLine($"[PlantHub] (supervisor) Probe {probeUri} -> HTTP {code}");
         }
@@ -25,24 +24,42 @@ public sealed class HomeAssistantSupervisorClient : AbstractHomeAssistantClient
         }
 
         var wsUri = BuildWebSocketUri(BaseUri!);
-        using var ws = new ClientWebSocket();
+        Console.WriteLine($"[PlantHub] (supervisor) WS connect → {wsUri}");
 
-        // Supervisor expects X-Supervisor-Token header. Authorization is usually not required.
-        ws.Options.SetRequestHeader("X-Supervisor-Token", Token);
-        // Set Origin to HA ingress authority so the proxy will accept it
-        ws.Options.SetRequestHeader("Origin", BaseUri!.GetLeftPart(UriPartial.Authority));
+        using var ws = new ClientWebSocket();
+                
+        ws.Options.SetRequestHeader("Authorization", $"Bearer {Token}");
+
+        // Tips: testa UTAN Origin först. Lägg bara till vid behov.
+        // ws.Options.SetRequestHeader("Origin", BaseUri!.GetLeftPart(UriPartial.Authority));
+
         ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(10));
-        await ws.ConnectAsync(wsUri, cts.Token);
+        cts.CancelAfter(TimeSpan.FromSeconds(15));
+
+        try
+        {
+            await ws.ConnectAsync(wsUri, cts.Token);
+        }
+        catch (WebSocketException wex)
+        {
+            Console.WriteLine($"[PlantHub] (supervisor) WS connect failed: {wex.Message}");
+            throw; // låt Blazor få stacktrace men vi har nu mer context i loggen
+        }
 
         // auth_required
-        _ = await ReceiveJsonAsync(ws, ct);
-        // For supervisor proxy, Home Assistant still expects "auth" with access_token
+        var first = await ReceiveJsonAsync(ws, ct);
+        string firstType = first.TryGetProperty("type", out var ft) ? ft.GetString() ?? "<null>" : "<no type>";
+        Console.WriteLine($"[PlantHub] (supervisor) WS first msg: {firstType}");
+
+        // auth
         await SendJsonAsync(ws, new { type = "auth", access_token = Token }, ct);
+
         // auth_ok
-        _ = await ReceiveJsonAsync(ws, ct);
+        var authOk = await ReceiveJsonAsync(ws, ct);
+        var authOkType = authOk.TryGetProperty("type", out var at) ? at.GetString() ?? "<null>" : "<no type>";
+        Console.WriteLine($"[PlantHub] (supervisor) WS auth reply: {authOkType}");
 
         // request areas
         await SendJsonAsync(ws, new { id = 1, type = "config/area_registry/list" }, ct);
@@ -53,9 +70,12 @@ public sealed class HomeAssistantSupervisorClient : AbstractHomeAssistantClient
             resp.TryGetProperty("result", out var result) &&
             result.ValueKind == JsonValueKind.Array)
         {
-            return ParseAreaList(result);
+            var list = ParseAreaList(result);
+            Console.WriteLine($"[PlantHub] (supervisor) Areas = {list.Count}");
+            return list;
         }
 
+        Console.WriteLine($"[PlantHub] (supervisor) Unexpected WS response: {resp}");
         return Array.Empty<HaAreaLite>();
     }
 }
