@@ -16,6 +16,14 @@
 	  <None Include="compilerconfig.json" />
 	</ItemGroup>
 	<ItemGroup>
+	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
+	</ItemGroup>
+	<ItemGroup>
 		<Content Update="wwwroot\**\*">
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
