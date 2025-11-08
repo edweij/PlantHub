@@ -1,0 +1,25 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using PlantHub.Web.Components.Plants
+
+<PageTitle>PlantHub</PageTitle>
+
+<main class="ph-layout">
+    <section class="ph-topbar">
+        <AddPlantButton OnClick="HandleAddPlantClick" />
+    </section>
+
+    <section class="ph-content">
+        <PlantGroupsList />
+    </section>
+</main>
+
+@code {
+    // TODO: När vi har modal: toggla state här och visa AddPlantModal-komponent.
+    private void HandleAddPlantClick()
+    {
+        // For now: bara logik-hook, inget UI ännu.
+        Console.WriteLine("Add plant clicked");
+    }
+}

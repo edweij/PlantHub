@@ -20,6 +20,8 @@ public record WateringGroup
     public int? MinDaysBetween { get; set; }
     public int? MaxDaysBetween { get; set; }
 
+    public ICollection<Plant> Plants { get; init; } = new List<Plant>();
+
     // Audit
     public DateTime CreatedUtc { get; init; } = DateTime.UtcNow;
     public DateTime? UpdatedUtc { get; set; }

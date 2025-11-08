@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PlantHub.Infrastructure.Seed;
 using PlantHub.Web.Domain;
 using PlantHub.Web.Infrastructure.Configurations;
 
@@ -15,6 +16,7 @@ public class PlantHubDbContext : DbContext
     {
         modelBuilder.ApplyConfiguration(new PlantConfiguration());
         modelBuilder.ApplyConfiguration(new WateringGroupConfiguration());
+        modelBuilder.SeedWateringGroups();
     }
 
     public override int SaveChanges()

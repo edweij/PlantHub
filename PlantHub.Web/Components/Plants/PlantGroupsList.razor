@@ -1,0 +1,80 @@
+﻿@namespace PlantHub.Web.Components.Plants
+
+@using Microsoft.EntityFrameworkCore
+@using PlantHub.Web.Domain
+@using PlantHub.Web.Infrastructure
+
+@inject PlantHubDbContext Db
+
+@if (_groupsWithPlants is null)
+{
+    <p><em>Laddar växter...</em></p>
+}
+else if (_groupsWithPlants.Count == 0)
+{
+    <p>Inga bevattningsgrupper eller växter hittades.</p>
+}
+else
+{
+    <div class="ph-card-list">
+        @foreach (var group in _groupsWithPlants)
+        {
+            <div class="ph-card">
+                <div class="ph-card-header">
+                    <span class="ph-card-title">@group.Name</span>
+                    <span class="ph-card-subtitle">
+                        @GetIntervalLabel(group)
+                    </span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(group.Description))
+                {
+                    <p class="ph-card-description">@group.Description</p>
+                }
+
+                @if (group.Plants is { Count: > 0 })
+                {
+                    <ul class="ph-list">
+                        @foreach (var plant in group.Plants.OrderBy(p => p.Name))
+                        {
+                            <li class="ph-list-item">
+                                <span class="ph-plant-name">@plant.Name</span>
+                                @if (!string.IsNullOrWhiteSpace(plant.Area))
+                                {
+                                    <span class="ph-plant-location">@plant.Area</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(plant.LatinName))
+                                {
+                                    <span class="ph-plant-latin">(@plant.LatinName)</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="ph-empty-hint">Inga växter ännu i denna grupp.</p>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<WateringGroup> _groupsWithPlants = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load groups with plants in one query
+        _groupsWithPlants = await Db.WateringGroups
+            .Include(g => g.Plants)
+            .OrderBy(g => g.Id)
+            .ToListAsync();
+    }
+
+    private static string GetIntervalLabel(WateringGroup g)
+    {
+        // Short, human-friendly label for the card header
+        return $"Sommar: {g.IntervalDaysSummer} d • Vinter: {g.IntervalDaysWinter} d";
+    }
+}

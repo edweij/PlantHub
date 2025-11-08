@@ -1,0 +1,43 @@
+﻿/* wwwroot/styles/_layout.scss */
+
+/* Wrapper för innehållet på sidan */
+.ph-layout {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Lite bredare på desktop */
+@media (min-width: 1024px) {
+    .ph-layout {
+        max-width: 1040px;
+        padding: 2rem 0 3rem;
+    }
+}
+
+/* Topbar för knappar/filter högst upp på sidan */
+.ph-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .75rem;
+    position: sticky;
+    top: 0;
+    padding-bottom: .5rem;
+    margin-bottom: .5rem;
+    background: var(--bg);
+    z-index: 10;
+    /* subtil border under topbarn */
+    border-bottom: 1px solid rgba(148, 163, 253, 0.0); // kan göras 0.1 om du vill se linje
+}
+
+/* Själva innehållet under topbaren */
+.ph-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}

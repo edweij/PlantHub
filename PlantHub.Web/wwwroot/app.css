@@ -99,3 +99,194 @@ a:hover {
   border-radius: 0.75rem;
   padding: 1rem;
 }
+
+/* Import custom layout/components */
+/* wwwroot/styles/_layout.scss */
+/* Wrapper för innehållet på sidan */
+.ph-layout {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Lite bredare på desktop */
+@media (min-width: 1024px) {
+  .ph-layout {
+    max-width: 1040px;
+    padding: 2rem 0 3rem;
+  }
+}
+/* Topbar för knappar/filter högst upp på sidan */
+.ph-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  top: 0;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg);
+  z-index: 10;
+  /* subtil border under topbarn */
+  border-bottom: 1px solid rgba(148, 163, 253, 0);
+}
+
+/* Själva innehållet under topbaren */
+.ph-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* wwwroot/styles/_components.scss */
+/* Primary button */
+.ph-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--accent);
+  transition: all 0.16s ease-in-out;
+}
+
+.ph-btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.25);
+}
+
+.ph-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.32);
+}
+
+.ph-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.45);
+}
+
+/* Cards + list-layout för grupperna */
+.ph-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Möjlighet: två kolumner på större skärmar */
+@media (min-width: 900px) {
+  .ph-card-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}
+.ph-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.85rem 0.9rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Header inuti kortet */
+.ph-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ph-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ph-card-id {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.ph-card-subtitle {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.ph-card-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Meta info + listor */
+.ph-card-meta {
+  margin: 0.25rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.15rem 0.75rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.ph-card-meta dt {
+  font-weight: 500;
+}
+
+.ph-card-meta dd {
+  margin: 0;
+}
+
+/* Växtlista inuti grupperna */
+.ph-list {
+  list-style: none;
+  padding: 0.35rem 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ph-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  align-items: baseline;
+}
+
+.ph-plant-name {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.ph-plant-location {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.ph-plant-latin {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.ph-empty-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}

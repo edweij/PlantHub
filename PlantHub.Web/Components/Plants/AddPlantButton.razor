@@ -1,0 +1,11 @@
+﻿
+<button type="button"
+        class="ph-btn ph-btn-primary"
+        @onclick="OnClick">
+    + Lägg till växt
+</button>
+
+@code {
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+}
