@@ -100,7 +100,6 @@ a:hover {
   padding: 1rem;
 }
 
-/* Import custom layout/components */
 /* wwwroot/styles/_layout.scss */
 /* Wrapper för innehållet på sidan */
 .ph-layout {
@@ -143,8 +142,7 @@ a:hover {
   gap: 1.25rem;
 }
 
-/* wwwroot/styles/_components.scss */
-/* Primary button */
+/* Buttons */
 .ph-btn {
   display: inline-flex;
   align-items: center;
@@ -159,23 +157,134 @@ a:hover {
   color: var(--accent);
   transition: all 0.16s ease-in-out;
 }
+.ph-btn:hover {
+  filter: brightness(1.03);
+}
 
 .ph-btn-primary {
   background: var(--accent);
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(22, 163, 74, 0.25);
 }
-
 .ph-btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(22, 163, 74, 0.32);
 }
-
 .ph-btn-primary:active {
   transform: translateY(0);
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.45);
 }
 
+/* Sekundära varianter du använde i PlantCard */
+.ph-btn-accent {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Danger variant */
+.ph-btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+.ph-btn-danger:hover {
+  filter: brightness(0.95);
+}
+.ph-btn-danger:active {
+  filter: brightness(0.9);
+}
+
+/* ===== Unified Modal System ===== */
+/* Container (portal/overlay root) */
+.ph-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* över det mesta */
+}
+
+/* Backdrop */
+.ph-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65); /* mörkare, som din AddPlant */
+  backdrop-filter: blur(3px);
+  z-index: 0;
+}
+
+/* Dialog */
+.ph-modal-dialog {
+  position: relative;
+  z-index: 1;
+  margin: 10vh auto 0;
+  width: min(92vw, 520px); /* md default */
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(0);
+  animation: phModalIn 0.15s ease-out;
+  /* Header/Body/Footer */
+}
+.ph-modal-dialog .ph-modal-header {
+  padding: 1rem 1rem 0.5rem;
+  /* Tillåter H2 direkt inuti headern (AddPlant) */
+}
+.ph-modal-dialog .ph-modal-header .ph-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.ph-modal-dialog .ph-modal-header h2 {
+  margin: 0;
+}
+.ph-modal-dialog .ph-modal-body {
+  padding: 0.25rem 1rem 1rem;
+  /* AddPlant-stil: kolumn + gap */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ph-modal-dialog .ph-modal-body p {
+  margin: 0;
+  color: var(--fg);
+}
+.ph-modal-dialog .ph-modal-footer {
+  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* ---- Modifiers ---- */
+/* Small width variant (AddPlant ≈ 480px) */
+.ph-modal-dialog--sm {
+  width: min(480px, 100% - 2rem);
+}
+
+/* “Elevated/glow” variant (AddPlant look) */
+.ph-modal-dialog--elevated {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.55), 0 0 14px rgba(255, 255, 255, 0.06);
+}
+
+/* In-animation */
+@keyframes phModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 /* Cards + list-layout för grupperna */
 .ph-card-list {
   display: flex;
@@ -183,7 +292,7 @@ a:hover {
   gap: 0.75rem;
 }
 
-/* Möjlighet: två kolumner på större skärmar */
+/* Två kolumner på större skärmar */
 @media (min-width: 900px) {
   .ph-card-list {
     display: grid;
@@ -199,42 +308,35 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  /* Äldre list-vy (behåll för bakåtkompatibilitet) */
 }
-
-/* Header inuti kortet */
-.ph-card-header {
+.ph-card .ph-card-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
 }
-
-.ph-card-title {
+.ph-card .ph-card-header .ph-card-title {
   font-size: 1rem;
   font-weight: 600;
   color: var(--fg);
 }
-
-.ph-card-id {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-.ph-card-subtitle {
+.ph-card .ph-card-header .ph-card-subtitle {
   display: inline-block;
   font-size: 0.75rem;
   color: var(--muted);
   font-weight: 400;
 }
-
-.ph-card-description {
+.ph-card .ph-card-header .ph-card-id {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.ph-card .ph-card-description {
   margin: 0;
   font-size: 0.85rem;
   color: var(--muted);
 }
-
-/* Meta info + listor */
-.ph-card-meta {
+.ph-card .ph-card-meta {
   margin: 0.25rem 0 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -242,17 +344,13 @@ a:hover {
   font-size: 0.72rem;
   color: var(--muted);
 }
-
-.ph-card-meta dt {
+.ph-card .ph-card-meta dt {
   font-weight: 500;
 }
-
-.ph-card-meta dd {
+.ph-card .ph-card-meta dd {
   margin: 0;
 }
-
-/* Växtlista inuti grupperna */
-.ph-list {
+.ph-card .ph-list {
   list-style: none;
   padding: 0.35rem 0 0;
   margin: 0;
@@ -260,33 +358,274 @@ a:hover {
   flex-direction: column;
   gap: 0.15rem;
 }
-
-.ph-list-item {
+.ph-card .ph-list .ph-list-item {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
   font-size: 0.8rem;
   align-items: baseline;
 }
-
-.ph-plant-name {
+.ph-card .ph-list .ph-list-item .ph-plant-name {
   font-weight: 500;
   color: var(--fg);
 }
-
-.ph-plant-location {
+.ph-card .ph-list .ph-list-item .ph-plant-location {
   font-size: 0.75rem;
   color: var(--muted);
 }
-
-.ph-plant-latin {
+.ph-card .ph-list .ph-list-item .ph-plant-latin {
   font-size: 0.75rem;
   color: var(--muted);
   font-style: italic;
 }
-
-.ph-empty-hint {
+.ph-card .ph-empty-hint {
   margin: 0.25rem 0 0;
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+/* Själva växtkortet + interna element */
+.ph-plant-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.75rem;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.2s ease;
+}
+.ph-plant-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.ph-plant-card .ph-plant-media {
+  position: relative;
+  height: 140px;
+  background: var(--bg);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.ph-plant-card .ph-plant-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ph-plant-card .ph-plant-media .ph-plant-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, var(--accent), #34d399);
+  color: white;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+.ph-plant-card .ph-plant-media .ph-badge {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  backdrop-filter: blur(6px);
+}
+.ph-plant-card .ph-plant-media .ph-badge.ph-badge-status {
+  background: rgba(34, 197, 94, 0.85);
+}
+.ph-plant-card .ph-plant-body {
+  display: grid;
+  gap: 0.5rem;
+}
+.ph-plant-card .ph-plant-body .ph-plant-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+}
+.ph-plant-card .ph-plant-body .ph-plant-title .ph-plant-name {
+  font-weight: 700;
+}
+.ph-plant-card .ph-plant-body .ph-plant-title .ph-plant-latin {
+  color: var(--muted);
+  font-style: italic;
+}
+.ph-plant-card .ph-plant-body .ph-plant-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.ph-plant-card .ph-plant-body .ph-plant-meta .ph-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+}
+.ph-plant-card .ph-plant-body .ph-plant-meta .ph-chip.ph-chip-accent {
+  border-color: transparent;
+  background: rgba(34, 197, 94, 0.12);
+}
+.ph-plant-card .ph-plant-body .ph-plant-meta .ph-chip .ph-ico {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  opacity: 0.7;
+}
+.ph-plant-card .ph-plant-body .ph-plant-water {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.ph-plant-card .ph-plant-body .ph-plant-water .ph-water-label {
+  color: var(--muted);
+}
+.ph-plant-card .ph-plant-body .ph-plant-water .ph-water-date {
+  font-weight: 600;
+}
+.ph-plant-card .ph-plant-body .ph-plant-water .ph-overdue {
+  margin-left: auto;
+  color: #ef4444;
+  font-weight: 700;
+}
+.ph-plant-card .ph-plant-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.ph-plant-card .ph-plant-actions .ph-btn-danger .ph-ico {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  opacity: 0.7;
+}
+
+/* Grid som används i PlantGroupsList */
+.ph-plant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.9rem;
+  /* Här är platsen där du kan lägga grid-scoping om du vill:
+   .ph-plant-card { ... }  – men vi håller kortets stil i egen fil */
+}
+
+/* ---------- Form fields ---------- */
+.ph-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ph-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.ph-input,
+.ph-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+}
+
+.ph-input:focus,
+.ph-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+/* ---------- Buttons ---------- */
+.ph-btn {
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.7rem;
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.ph-btn-primary {
+  background: var(--accent);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.ph-btn-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+.ph-icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+/* ---------- Validation ---------- */
+.ph-validation-summary,
+.validation-message {
+  font-size: 0.75rem;
+  color: #f97316;
+}
+
+.ph-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ph-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ph-label-sm {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+  display: block;
+}
+
+.ph-textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.ph-textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.ph-hint {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
 }

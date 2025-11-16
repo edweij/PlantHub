@@ -19,7 +19,7 @@ public class PlantConfiguration : IEntityTypeConfiguration<Plant>
         b.HasIndex(x => x.Name); // Not unique; users may reuse names
 
         b.Property(x => x.LatinName).HasMaxLength(200);
-        b.Property(x => x.Area).HasMaxLength(120);
+        b.Property(x => x.AreaId).HasMaxLength(120);
 
         // Pot volume in ml (positive if set)
         b.Property(x => x.PotVolumeMl);
@@ -32,7 +32,7 @@ public class PlantConfiguration : IEntityTypeConfiguration<Plant>
 
         // Optional relation to WateringGroup when Mode == Schedule
         b.HasOne(x => x.WateringGroup)
-            .WithMany()
+            .WithMany(g => g.Plants)
             .HasForeignKey(x => x.WateringGroupId)
             .OnDelete(DeleteBehavior.SetNull);
 

@@ -8,11 +8,11 @@
 
 @if (_groupsWithPlants is null)
 {
-    <p><em>Laddar växter...</em></p>
+    <p><em>Loading plants...</em></p>
 }
 else if (_groupsWithPlants.Count == 0)
 {
-    <p>Inga bevattningsgrupper eller växter hittades.</p>
+    <p>No irrigation groups or plants were found.</p>
 }
 else
 {
@@ -34,47 +34,150 @@ else
 
                 @if (group.Plants is { Count: > 0 })
                 {
-                    <ul class="ph-list">
+                    <div class="ph-plant-grid">
                         @foreach (var plant in group.Plants.OrderBy(p => p.Name))
                         {
-                            <li class="ph-list-item">
-                                <span class="ph-plant-name">@plant.Name</span>
-                                @if (!string.IsNullOrWhiteSpace(plant.Area))
-                                {
-                                    <span class="ph-plant-location">@plant.Area</span>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(plant.LatinName))
-                                {
-                                    <span class="ph-plant-latin">(@plant.LatinName)</span>
-                                }
-                            </li>
+                            <PlantCard Plant="plant"
+                                       AreaName="@(ResolveAreaName(plant.AreaId))"
+                                       WateringGroupName="@(plant.WateringGroup?.Name)"
+                                       NextWaterDate="@(ComputeNextWaterDate(plant))"
+                                       DaysOverdue="@(ComputeDaysOverdue(plant))"
+                                       StatusBadge="@(GetStatusBadge(plant))"
+                                       OnClick="@(p => OpenDetails(p))"
+                                       OnEdit="@(p => OpenEditModal(p))"
+                                       OnWaterNow="@(p => MarkWateredNow(p))"
+                                       OnDelete="@(p => RequestDelete(p))" />
                         }
-                    </ul>
+                    </div>
                 }
                 else
                 {
-                    <p class="ph-empty-hint">Inga växter ännu i denna grupp.</p>
+                    <p class="ph-empty-hint">No plants yet in this group.</p>
                 }
             </div>
         }
     </div>
+
+    <PhConfirmModal
+    IsOpen="_deleteOpen"
+    IsOpenChanged="@(v => _deleteOpen = v)"
+    Title="Delete plant"
+    Message="@(_pendingDelete is null ? null : $"Are you sure you want to delete '{_pendingDelete.Name}'? This cannot be undone.")"
+    CancelText="Cancel"
+    ConfirmText="Delete"
+    OnConfirm="ConfirmDeleteAsync"
+    OnCancel="CancelDelete" />
 }
 
 @code {
+    [Parameter] public IEnumerable<HaAreaLite> Areas { get; set; } = Enumerable.Empty<HaAreaLite>();
+
     private List<WateringGroup> _groupsWithPlants = new();
+    private bool _deleteOpen;
+    private Plant? _pendingDelete;
+
 
     protected override async Task OnInitializedAsync()
     {
-        // Load groups with plants in one query
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
         _groupsWithPlants = await Db.WateringGroups
             .Include(g => g.Plants)
             .OrderBy(g => g.Id)
             .ToListAsync();
     }
 
+    private void RequestDelete(Plant p)
+    {
+        _pendingDelete = p;
+        _deleteOpen = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_pendingDelete is null) return;
+
+        // Ta bort och spara
+        Db.Remove(_pendingDelete);
+        await Db.SaveChangesAsync();
+
+        // Nollställ state och ladda om listan
+        _pendingDelete = null;
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    private void CancelDelete()
+    {
+        _pendingDelete = null;
+        _deleteOpen = false;
+    }
+
     private static string GetIntervalLabel(WateringGroup g)
     {
         // Short, human-friendly label for the card header
-        return $"Sommar: {g.IntervalDaysSummer} d • Vinter: {g.IntervalDaysWinter} d";
+        return $"Summer: {g.IntervalDaysSummer} d • Winter: {g.IntervalDaysWinter} d";
+    }
+
+    private string? ResolveAreaName(string? areaId) => Areas.SingleOrDefault(a => a.Id == areaId)?.Name ?? areaId;
+
+    private DateTime? ComputeNextWaterDate(Plant p)
+    {
+        // Example only: use summer/winter intervals if available
+        if (p.WateringGroup is null) return null;
+
+        var today = DateTime.Today;
+        var last = p.LastWateredUtc?.Date ?? today;
+        var isSummer = DomainHelper.IsSummer(today, p.WateringGroup);
+        var days = isSummer ? p.WateringGroup.IntervalDaysSummer : p.WateringGroup.IntervalDaysWinter;
+
+        if (days <= 0) return null;
+        return last.AddDays(days);
+    }
+
+    private int? ComputeDaysOverdue(Plant p)
+    {
+        var next = ComputeNextWaterDate(p);
+        if (next is null) return null;
+        var diff = (DateTime.Today - next.Value.Date).Days;
+        return diff > 0 ? diff : 0;
+    }
+
+    private string? GetStatusBadge(Plant p)
+    {
+        var overdue = ComputeDaysOverdue(p);
+        if (overdue is > 0) return "Needs water";
+        return "OK";
+    }
+
+    // Wire up your UI actions
+    private void OpenDetails(Plant p) { /* navigate or open side panel */ }
+    private void OpenEditModal(Plant p) { /* open modal */ }
+    private async Task MarkWateredNow(Plant p)
+    {
+        // e.g., save watering event + UI refresh
+        // await Repository.MarkWateredAsync(p.Id, DateTime.UtcNow);
+        StateHasChanged();
+    }
+
+    private async Task DeletePlantAsync(Plant p)
+    {
+        // TODO: byt till ditt riktiga delete-flöde + ev. modalbekräftelse
+        // Exempel:
+        // if (!await ConfirmAsync($"Delete '{p.Name}'?")) return;
+        // Db.Plants.Remove(p);
+        // await Db.SaveChangesAsync();
+
+        // Reload list
+        _groupsWithPlants = await Db.WateringGroups
+            .Include(g => g.Plants)
+            .OrderBy(g => g.Id)
+            .ToListAsync();
+
+        StateHasChanged();
     }
 }

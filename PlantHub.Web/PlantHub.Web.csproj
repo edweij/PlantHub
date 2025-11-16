@@ -10,6 +10,9 @@
 		<InvariantGlobalization>true</InvariantGlobalization>
 	</PropertyGroup>
 	<ItemGroup>
+	  <Compile Remove="Components\Plants\PlantCreateModel.cs" />
+	</ItemGroup>
+	<ItemGroup>
 	  <Content Remove="compilerconfig.json" />
 	</ItemGroup>
 	<ItemGroup>

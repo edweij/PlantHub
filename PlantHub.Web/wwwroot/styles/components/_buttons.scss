@@ -1,0 +1,57 @@
+﻿/* Buttons */
+.ph-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .5rem 1rem;
+    border-radius: .5rem;
+    border: 1px solid transparent;
+    font-size: .9rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--accent);
+    transition: all 0.16s ease-in-out;
+
+    &:hover {
+        filter: brightness(1.03);
+    }
+}
+
+.ph-btn-primary {
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(22, 163, 74, 0.25);
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(22, 163, 74, 0.32);
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.45);
+    }
+}
+
+/* Sekundära varianter du använde i PlantCard */
+.ph-btn-accent {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+/* Danger variant */
+.ph-btn-danger {
+    background: rgba(239,68,68,.12);
+    color: #ef4444;
+    border: 1px solid #ef4444;
+
+    &:hover {
+        filter: brightness(0.95);
+    }
+
+    &:active {
+        filter: brightness(0.9);
+    }
+}

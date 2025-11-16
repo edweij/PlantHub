@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PlantHub.Web.Infrastructure;
 
@@ -10,9 +11,11 @@ using PlantHub.Web.Infrastructure;
 namespace PlantHub.Web.Migrations
 {
     [DbContext(typeof(PlantHubDbContext))]
-    partial class PlantHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251109110002_RenamePlantAreaToAreaId_AddNotesIsActive")]
+    partial class RenamePlantAreaToAreaId_AddNotesIsActive
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -76,11 +79,16 @@ namespace PlantHub.Web.Migrations
                     b.Property<int?>("WateringGroupId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("WateringGroupId1")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
 
                     b.HasIndex("WateringGroupId");
+
+                    b.HasIndex("WateringGroupId1");
 
                     b.ToTable("Plants", null, t =>
                         {
@@ -217,9 +225,13 @@ namespace PlantHub.Web.Migrations
             modelBuilder.Entity("PlantHub.Web.Domain.Plant", b =>
                 {
                     b.HasOne("PlantHub.Web.Domain.WateringGroup", "WateringGroup")
-                        .WithMany("Plants")
+                        .WithMany()
                         .HasForeignKey("WateringGroupId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PlantHub.Web.Domain.WateringGroup", null)
+                        .WithMany("Plants")
+                        .HasForeignKey("WateringGroupId1");
 
                     b.Navigation("WateringGroup");
                 });

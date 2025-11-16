@@ -1,0 +1,88 @@
+﻿@inherits ComponentBase
+
+@if (IsOpen)
+{
+    <div class="ph-modal" role="dialog" aria-modal="true" aria-labelledby="@_titleId" @onkeydown="HandleKeyDown">
+        <div class="ph-modal-backdrop" @onclick="OnCancelInternal"></div>
+
+        <div class="ph-modal-dialog" tabindex="-1" @ref="_dialogRef">
+            <div class="ph-modal-header">
+                <h3 id="@_titleId" class="ph-modal-title">@Title</h3>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Message))
+            {
+                <div class="ph-modal-body">
+                    <p>@Message</p>
+                </div>
+            }
+
+            @if (ChildContent is not null)
+            {
+                <div class="ph-modal-body">
+                    @ChildContent
+                </div>
+            }
+
+            <div class="ph-modal-footer">
+                <button class="ph-btn" @onclick="OnCancelInternal">@CancelText</button>
+                <button class="ph-btn ph-btn-danger" @onclick="OnConfirmInternal">@ConfirmText</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private ElementReference _dialogRef;
+    private readonly string _titleId = $"ph-modal-title-{Guid.NewGuid()}";
+
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public string Title { get; set; } = "Confirm";
+    [Parameter] public string? Message { get; set; }
+
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+    [Parameter] public string ConfirmText { get; set; } = "Delete";
+
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen)
+        {
+            // försök fokusera dialogen när den öppnas
+            await Task.Yield();
+            await _dialogRef.FocusAsync();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await OnCancelInternal();
+    }
+
+    private async Task OnCancelInternal()
+    {
+        if (OnCancel.HasDelegate) await OnCancel.InvokeAsync();
+        await CloseAsync();
+    }
+
+    private async Task OnConfirmInternal()
+    {
+        if (OnConfirm.HasDelegate) await OnConfirm.InvokeAsync();
+        await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        IsOpen = false;
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+}

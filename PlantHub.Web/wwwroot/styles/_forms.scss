@@ -1,0 +1,110 @@
+﻿/* ---------- Form fields ---------- */
+
+.ph-field {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.ph-label {
+    font-size: .8rem;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.ph-input,
+.ph-select {
+    width: 100%;
+    padding: .55rem .7rem;
+    border-radius: .55rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: .9rem;
+}
+
+.ph-input:focus,
+.ph-select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+/* ---------- Buttons ---------- */
+
+.ph-btn {
+    padding: .5rem .85rem;
+    border-radius: .7rem;
+    border: 1px solid transparent;
+    font-size: .85rem;
+    cursor: pointer;
+}
+
+.ph-btn-primary {
+    background: var(--accent);
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.ph-btn-ghost {
+    background: transparent;
+    color: var(--muted);
+}
+
+.ph-icon-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--muted);
+}
+
+/* ---------- Validation ---------- */
+
+.ph-validation-summary,
+.validation-message {
+    font-size: .75rem;
+    color: #f97316;
+}
+
+.ph-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+}
+
+.ph-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .5rem;
+}
+
+.ph-label-sm {
+    font-size: .7rem;
+    color: var(--muted);
+    margin-bottom: .15rem;
+    display: block;
+}
+
+.ph-textarea {
+    width: 100%;
+    padding: .55rem .7rem;
+    border-radius: .55rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: .9rem;
+    resize: vertical;
+}
+
+.ph-textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+.ph-hint {
+    font-size: .7rem;
+    color: var(--muted);
+    margin-top: .15rem;
+}

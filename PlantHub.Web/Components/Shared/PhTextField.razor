@@ -1,0 +1,38 @@
+﻿@using System.Linq.Expressions
+
+<div class="ph-field">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label class="ph-label">@Label</label>
+    }
+
+    <input class="ph-input"
+           type="@Type"
+           placeholder="@Placeholder"
+           value="@Value"
+           @oninput="OnInput" />
+
+    @if (ValueExpression is not null)
+    {
+        <ValidationMessage For="ValueExpression" />
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string Type { get; set; } = "text";
+
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    // Denna fylls automatiskt av @bind-Value på användarsidan
+    [Parameter] public Expression<Func<string>>? ValueExpression { get; set; }
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString() ?? string.Empty;
+        if (newValue != Value && ValueChanged.HasDelegate)
+            await ValueChanged.InvokeAsync(newValue);
+    }
+}

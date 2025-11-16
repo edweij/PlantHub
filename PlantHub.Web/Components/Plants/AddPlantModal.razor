@@ -1,0 +1,163 @@
+﻿@using PlantHub.Web.Domain
+@using PlantHub.Web.Lib
+@using PlantHub.Web.Components.Shared
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@if (IsOpen)
+{
+    <div class="ph-modal" role="dialog" aria-modal="true" @onkeydown="HandleKeyDown">
+        <div class="ph-modal-backdrop" @onclick="CloseAsync"></div>
+
+        <div class="ph-modal-dialog ph-modal-dialog--sm ph-modal-dialog--elevated" tabindex="-1">
+            <div class="ph-modal-header">
+                <h2 class="ph-modal-title">Add plant</h2>
+                <button type="button" class="ph-icon-btn" @onclick="CloseAsync">✕</button>
+            </div>
+            
+            <EditForm EditContext="_editContext" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <div class="ph-modal-body">
+                    <!-- Name -->
+                    <PhTextField Label="Name"
+                                 Placeholder="e.g. Ficus in living room window"
+                                 @bind-Value="_model.Name" />
+
+                    <!-- Latin name -->
+                    <PhTextField Label="Latin name"
+                                 Placeholder="Ficus lyrata"
+                                 @bind-Value="_model.LatinName" />
+
+                    <!-- Area + Watering group -->
+                    <div class="ph-grid-2">
+                        <PhSelectField TValue="string"
+                                       Label="Area"
+                                       Placeholder="Select area"
+                                       Items="_areaOptions"
+                                       @bind-Value="_model.AreaId" />
+
+                        <PhSelectField TValue="int?"
+                                       Label="Watering group"
+                                       Placeholder="Select group"
+                                       Items="_wgOptions"
+                                       @bind-Value="_model.WateringGroupId" />
+                    </div>
+
+                    <!-- Pot size -->
+                    <div class="ph-field">
+                        <label class="ph-label">Pot size</label>
+                        <div class="ph-grid-3">
+                            <div>
+                                <label class="ph-label-sm">Volume (ml)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.PotVolumeMl" />
+                            </div>
+                            <div>
+                                <label class="ph-label-sm">Diameter (cm)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.PotDiameterCm" />
+                            </div>
+                            <div>
+                                <label class="ph-label-sm">Height (cm)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.PotHeightCm" />
+                            </div>
+                        </div>
+                        <div class="ph-hint">
+                            Fill either volume, or diameter + height. Volume will be calculated if missing.
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="ph-field">
+                        <label class="ph-label">Notes</label>
+                        <textarea class="ph-textarea"
+                                  @bind="_model.Notes"
+                                  rows="3"
+                                  placeholder="Sun, drafts, quirks, etc."></textarea>
+                    </div>
+
+                    <ValidationSummary class="ph-validation-summary" />
+                </div>
+
+                <div class="ph-modal-footer">
+                    <button type="button" class="ph-btn ph-btn-ghost" @onclick="CloseAsync">
+                        Cancel
+                    </button>
+                    <button type="submit" class="ph-btn ph-btn-primary">
+                        Save plant
+                    </button>
+                </div>
+            </EditForm>            
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public IEnumerable<HaAreaLite> Areas { get; set; } = Enumerable.Empty<HaAreaLite>();
+    [Parameter] public IEnumerable<WateringGroup> WateringGroups { get; set; } = Enumerable.Empty<WateringGroup>();
+    [Parameter] public EventCallback<CreatePlantModel> OnSave { get; set; }
+
+    private CreatePlantModel _model = new();
+    private EditContext? _editContext;
+    private List<PhSelectField<string>.SelectItem> _areaOptions = new();
+    private List<PhSelectField<int?>.SelectItem> _wgOptions = new();
+
+    protected override void OnParametersSet()
+    {
+        if (_editContext is null || _editContext.Model != _model)
+            _editContext = new EditContext(_model);
+
+        var now = DateTime.UtcNow;
+
+        _areaOptions = Areas
+            .OrderBy(a => a.Name)
+            .Select(a => new PhSelectField<string>.SelectItem(a.Id, a.Name))
+            .ToList();
+
+        _wgOptions = WateringGroups
+            .OrderBy(g => g.Name)
+            .Select(g =>
+            {
+                bool isSummer = DomainHelper.IsSummer(now, g);
+                var interval = isSummer ? g.IntervalDaysSummer : g.IntervalDaysWinter;
+
+                var label = interval > 0
+                    ? $"{g.Name} · every {interval} days ({(isSummer ? "summer" : "winter")})"
+                    : g.Name;
+
+                return new PhSelectField<int?>.SelectItem(g.Id, label);
+            })
+            .ToList();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        _model.Mode = WateringMode.Schedule; // tills sensor-UI finns
+
+        if (OnSave.HasDelegate)
+            await OnSave.InvokeAsync(_model);
+
+        await CloseInternalAsync();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await CloseAsync();
+    }
+
+    private async Task CloseAsync() => await CloseInternalAsync();
+
+    private async Task CloseInternalAsync()
+    {
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(false);
+                    
+        _model = new CreatePlantModel();
+        _editContext = new EditContext(_model);
+    }
+}

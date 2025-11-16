@@ -1,0 +1,97 @@
+﻿/* ===== Unified Modal System ===== */
+
+/* Container (portal/overlay root) */
+.ph-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000; /* över det mesta */
+}
+
+/* Backdrop */
+.ph-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65); /* mörkare, som din AddPlant */
+    backdrop-filter: blur(3px);
+    z-index: 0;
+}
+
+/* Dialog */
+.ph-modal-dialog {
+    position: relative;
+    z-index: 1;
+    margin: 10vh auto 0;
+    width: min(92vw, 520px); /* md default */
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    outline: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(0);
+    animation: phModalIn .15s ease-out;
+    /* Header/Body/Footer */
+    .ph-modal-header {
+        padding: 1rem 1rem .5rem;
+
+        .ph-modal-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        /* Tillåter H2 direkt inuti headern (AddPlant) */
+        h2 {
+            margin: 0;
+        }
+    }
+
+    .ph-modal-body {
+        padding: .25rem 1rem 1rem;
+
+        p {
+            margin: 0;
+            color: var(--fg);
+        }
+        /* AddPlant-stil: kolumn + gap */
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+    }
+
+    .ph-modal-footer {
+        padding: .75rem 1rem 1rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+        margin-top: .25rem;
+    }
+}
+
+/* ---- Modifiers ---- */
+
+/* Small width variant (AddPlant ≈ 480px) */
+.ph-modal-dialog--sm {
+    width: min(480px, 100% - 2rem);
+}
+
+/* “Elevated/glow” variant (AddPlant look) */
+.ph-modal-dialog--elevated {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.55), 0 0 14px rgba(255, 255, 255, 0.06);
+}
+
+/* In-animation */
+@keyframes phModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

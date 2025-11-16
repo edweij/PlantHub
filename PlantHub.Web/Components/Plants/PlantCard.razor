@@ -1,0 +1,114 @@
+﻿@using PlantHub.Web.Domain 
+@inherits ComponentBase
+
+<div class="ph-plant-card" @onclick="() => OnClick.InvokeAsync(Plant)">
+    <div class="ph-plant-media">
+        @if (!string.IsNullOrWhiteSpace(Plant.ImagePath))
+        {
+            <img src="@Plant.ImagePath" alt="@Plant.Name" loading="lazy" />
+        }
+        else
+        {
+            <!-- Fallback avatar with initials -->
+            <div class="ph-plant-avatar" aria-hidden="true">
+                @GetInitials(Plant.Name)
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(StatusBadge))
+        {
+            <span class="ph-badge ph-badge-status">@StatusBadge</span>
+        }
+    </div>
+
+    <div class="ph-plant-body">
+        <div class="ph-plant-title">
+            <span class="ph-plant-name">@Plant.Name</span>
+            @if (!string.IsNullOrWhiteSpace(Plant.LatinName))
+            {
+                <span class="ph-plant-latin">(@Plant.LatinName)</span>
+            }
+        </div>
+
+        <div class="ph-plant-meta">
+            @if (!string.IsNullOrWhiteSpace(AreaName ?? Plant.AreaId))
+            {
+                <span class="ph-chip">
+                    <svg class="ph-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z" /></svg>
+                    @(AreaName ?? Plant.AreaId)
+                </span>
+            }
+            @if (WateringGroupName is not null)
+            {
+                <span class="ph-chip ph-chip-accent">@WateringGroupName</span>
+            }
+        </div>
+
+        @if (NextWaterDate is not null)
+        {
+            <div class="ph-plant-water">
+                <span class="ph-water-label">Next watering</span>
+                <span class="ph-water-date">@NextWaterDate?.ToString("yyyy-MM-dd")</span>
+                @if (DaysOverdue is not null && DaysOverdue > 0)
+                {
+                    <span class="ph-overdue">+@DaysOverdue d</span>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="ph-plant-actions">
+        @if (OnWaterNow.HasDelegate)
+        {
+            <button class="ph-btn ph-btn-accent" @onclick:stopPropagation="true" @onclick="() => OnWaterNow.InvokeAsync(Plant)">Water now</button>
+        }
+        @if (OnEdit.HasDelegate)
+        {
+            <button class="ph-btn" @onclick:stopPropagation="true" @onclick="() => OnEdit.InvokeAsync(Plant)">Edit</button>
+        }
+        @if (OnDelete.HasDelegate)
+        {
+            <button class="ph-btn ph-btn-danger"
+                    @onclick:stopPropagation="true"
+                    @onclick="() => OnDelete.InvokeAsync(Plant)">
+                <svg class="ph-ico" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 7h12l-1 13H7L6 7zm3-3h6l1 2H8l1-2z" />
+                </svg>
+                Delete
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public Plant Plant { get; set; } = default!;
+    // Optional: pretty area name instead of raw AreaId
+    [Parameter] public string? AreaName { get; set; }
+
+    // Optional: display name for watering group
+    [Parameter] public string? WateringGroupName { get; set; }
+
+    // Optional: precomputed next watering hint (keeps the component dumb)
+    [Parameter] public DateTime? NextWaterDate { get; set; }
+    [Parameter] public int? DaysOverdue { get; set; }
+
+    // Optional: a small status badge, e.g. "Needs water", "OK", "Winter rest"
+    [Parameter] public string? StatusBadge { get; set; }
+
+    // Actions
+    [Parameter] public EventCallback<Plant> OnClick { get; set; }
+    [Parameter] public EventCallback<Plant> OnEdit { get; set; }
+    [Parameter] public EventCallback<Plant> OnWaterNow { get; set; }
+    [Parameter] public EventCallback<Plant> OnDelete { get; set; }
+
+    private static string GetInitials(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "🌿";
+        var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => "🌿",
+            1 => parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant(),
+            _ => (parts[0][0].ToString() + parts[^1][0]).ToUpperInvariant()
+        };
+    }
+}

@@ -1,0 +1,55 @@
+﻿@typeparam TValue
+@using System.Linq.Expressions
+@using System.Globalization
+
+<div class="ph-field">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label class="ph-label">@Label</label>
+    }
+
+    <select class="ph-select"
+            value="@BindConverter.FormatValue(Value)"
+            @onchange="OnChange">
+        @if (!string.IsNullOrEmpty(Placeholder))
+        {
+            <option value="">@Placeholder</option>
+        }
+
+        @foreach (var item in Items)
+        {
+            <option value="@BindConverter.FormatValue(item.Value)">
+                @item.Label
+            </option>
+        }
+    </select>
+
+    @if (ValueExpression is not null)
+    {
+        <ValidationMessage For="ValueExpression" />
+    }
+</div>
+
+@code {
+    public record SelectItem(TValue Value, string Label);
+
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public TValue Value { get; set; } = default!;
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    [Parameter] public IEnumerable<SelectItem> Items { get; set; } = Enumerable.Empty<SelectItem>();
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        if (BindConverter.TryConvertTo<TValue>(e.Value, CultureInfo.InvariantCulture, out var newValue))
+        {
+            Value = newValue;
+            if (ValueChanged.HasDelegate)
+                await ValueChanged.InvokeAsync(newValue);
+        }
+    }
+}

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using PlantHub.Web.Infrastructure;
+using PlantHub.Infrastructure;
 using PlantHub.Web.Components;
+using PlantHub.Web.Infrastructure;
 using PlantHub.Web.Lib;
+using PlantHub.Web.Services;
 using System.Data.Common;
 using System.Net;
 
@@ -30,6 +32,8 @@ var cs = builder.Configuration.GetConnectionString("PlantHub")
 
 // Register DbContext with SQLite provider.
 builder.Services.AddDbContext<PlantHubDbContext>(opt => opt.UseSqlite(cs));
+builder.Services.AddScoped<IWateringGroupService, WateringGroupService>();
+builder.Services.AddScoped<IPlantService, PlantService>();
 
 // ---- UI stack (Blazor Server) ----
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();

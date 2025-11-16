@@ -1,0 +1,112 @@
+﻿/* Cards + list-layout för grupperna */
+.ph-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+/* Två kolumner på större skärmar */
+@media (min-width: 900px) {
+    .ph-card-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+}
+
+.ph-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    padding: 0.85rem 0.9rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+
+    .ph-card-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: .5rem;
+
+        .ph-card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        .ph-card-subtitle {
+            display: inline-block;
+            font-size: .75rem;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .ph-card-id {
+            font-size: .75rem;
+            color: var(--muted);
+        }
+    }
+
+    .ph-card-description {
+        margin: 0;
+        font-size: .85rem;
+        color: var(--muted);
+    }
+
+    .ph-card-meta {
+        margin: .25rem 0 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .15rem .75rem;
+        font-size: .72rem;
+        color: var(--muted);
+
+        dt {
+            font-weight: 500;
+        }
+
+        dd {
+            margin: 0;
+        }
+    }
+    /* Äldre list-vy (behåll för bakåtkompatibilitet) */
+    .ph-list {
+        list-style: none;
+        padding: .35rem 0 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .15rem;
+
+        .ph-list-item {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .35rem;
+            font-size: .8rem;
+            align-items: baseline;
+
+            .ph-plant-name {
+                font-weight: 500;
+                color: var(--fg);
+            }
+
+            .ph-plant-location {
+                font-size: .75rem;
+                color: var(--muted);
+            }
+
+            .ph-plant-latin {
+                font-size: .75rem;
+                color: var(--muted);
+                font-style: italic;
+            }
+        }
+    }
+
+    .ph-empty-hint {
+        margin: .25rem 0 0;
+        font-size: .75rem;
+        color: var(--muted);
+    }
+}

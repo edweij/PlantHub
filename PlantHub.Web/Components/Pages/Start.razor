@@ -1,7 +1,8 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-
 @using PlantHub.Web.Components.Plants
+
+
 
 <PageTitle>PlantHub</PageTitle>
 
@@ -11,15 +12,53 @@
     </section>
 
     <section class="ph-content">
-        <PlantGroupsList />
+        <PlantGroupsList Areas="_areas" />
     </section>
 </main>
 
+<AddPlantModal IsOpen="_showAddPlantModal"
+               Areas="_areas"
+               WateringGroups="_wateringGroups"
+               OnSave="HandleAddPlantSave"
+               IsOpenChanged="OnAddPlantModalChanged" />
+
 @code {
-    // TODO: När vi har modal: toggla state här och visa AddPlantModal-komponent.
+    [Inject] public IHomeAssistantClient HaClient { get; set; } = default!;
+    [Inject] public IWateringGroupService WateringGroupService { get; set; } = default!;
+    [Inject] public IPlantService PlantService { get; set; } = default!;
+
+    private bool _showAddPlantModal;
+    private IReadOnlyList<HaAreaLite> _areas = Array.Empty<HaAreaLite>();
+    private IReadOnlyList<WateringGroup> _wateringGroups = Array.Empty<WateringGroup>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HaClient.IsEnabled)
+        {
+            _areas = await HaClient.GetAreasAsync();
+        }
+        _wateringGroups = await WateringGroupService.GetAllAsync();
+    }
+
     private void HandleAddPlantClick()
     {
-        // For now: bara logik-hook, inget UI ännu.
-        Console.WriteLine("Add plant clicked");
+        _showAddPlantModal = true;
+    }
+
+    private void OnAddPlantModalChanged(bool value)
+    {
+        _showAddPlantModal = value;
+    }
+
+    private async Task HandleAddPlantSave(CreatePlantModel model)
+    {
+        // Formvalidering har redan skett via EditForm + IValidatableObject
+        var entity = model.ToEntity();
+        var saved = await PlantService.AddAsync(entity);
+
+        Console.WriteLine($"[PlantHub] Saved plant #{saved.Id}: {saved.Name} (WG={saved.WateringGroupId}, Area={saved.AreaId}, Vol={saved.PotVolumeMl})");
+
+        // TODO: trigga UI-refresh av listor. Ex:
+        // await _plantsListRef.ReloadAsync();
     }
 }

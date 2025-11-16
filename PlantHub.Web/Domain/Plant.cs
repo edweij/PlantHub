@@ -12,14 +12,21 @@ public record Plant
     // Optional Latin name for lookups (Wikipedia, etc.)
     public string? LatinName { get; set; }
 
-    // Optional area/room/zone
-    public string? Area { get; set; }
+    // Store HA Area Id (eller tom tills vidare)
+    public string? AreaId { get; set; }
 
     // Pot volume in milliliters (1 cm³ == 1 ml). Nullable until known.
     public int? PotVolumeMl { get; set; }
 
     // Relative or absolute path to an image (e.g., /data/images/plants/123.jpg)
     public string? ImagePath { get; set; }
+
+    // Free-form notes
+    public string? Notes { get; set; }
+
+    // Active flag instead of hård delete
+    public bool IsActive { get; set; } = true;
+
 
     // How this plant is watered
     public WateringMode Mode { get; set; } = WateringMode.Schedule;
