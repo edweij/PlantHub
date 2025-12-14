@@ -1,24 +1,17 @@
 name: PlantHub
 slug: planthub
-version: "0.1.0"
-description: Irrigation scheduler & plant manager (Blazor + SQLite + HA API)
+version: "0.2.0"
+description: Plant and watering management for Home Assistant
 startup: services
 init: false
 ingress: true
 ingress_port: 8099
-panel_icon: mdi:sprout
+panel_icon: mdi:leaf
 arch:
   - amd64
   - aarch64
+  - armv7
+homeassistant_api: true
+hassio_api: true
 map:
   - config:rw
-  - ssl:ro
-options:
-  log_level: info
-  base_url: "http://homeassistant:8123"
-  token: ""
-schema:
-  log_level: list(info|debug|warning|error)?
-  base_url: str
-  token: str
-image: null

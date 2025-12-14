@@ -1,16 +1,7 @@
-#!/usr/bin/with-contenv bashio
-set -euo pipefail
+#!/usr/bin/with-contenv sh
+set -e
 
-# Read add-on options
-BASE_URL=$(bashio::config 'base_url')
-TOKEN=$(bashio::config 'token')
+echo "[PlantHub] Starting PlantHub..."
 
-# Export env vars for the Blazor app
-export PLANTHUB__BASEURL="${BASE_URL}"
-export PLANTHUB__TOKEN="${TOKEN}"
-export ASPNETCORE_URLS="http://0.0.0.0:8099"
-export DOTNET_EnableDiagnostics=0
-export COMPlus_EnableDiagnostics=0
-
-# Start the self-contained app published into /app
-exec /app/PlantHub.Web
+cd /opt/planthub
+exec ./PlantHub.Web

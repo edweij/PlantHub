@@ -1,0 +1,31 @@
+#!/usr/bin/with-contenv sh
+set -e
+
+OPTIONS_FILE="/data/options.json"
+
+if [ ! -f "$OPTIONS_FILE" ]; then
+  echo "[PlantHub] No options.json found, using defaults"
+  exit 0
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[PlantHub] ERROR: jq is required but not available"
+  exit 1
+fi
+
+LOG_LEVEL="$(jq -r '.log_level // "info"' "$OPTIONS_FILE")"
+BASE_URL="$(jq -r '.base_url // empty' "$OPTIONS_FILE")"
+TOKEN="$(jq -r '.token // empty' "$OPTIONS_FILE")"
+
+export PLANTHUB__LOG_LEVEL="$LOG_LEVEL"
+
+if [ -n "$BASE_URL" ]; then
+  export PLANTHUB__BASE_URL="$BASE_URL"
+fi
+
+if [ -n "$TOKEN" ]; then
+  export PLANTHUB__TOKEN="$TOKEN"
+fi
+
+echo "[PlantHub] Configuration loaded (log_level=$LOG_LEVEL)"
+exit 0

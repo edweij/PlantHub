@@ -1,4 +1,0 @@
-#!/usr/bin/with-contenv bashio
-# s6 finish script for PlantHub service
-# Exit code 0 so s6 doesn't treat normal stops as failures
-exit 0
