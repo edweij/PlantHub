@@ -1,6 +1,6 @@
 name: PlantHub
 slug: planthub
-version: "0.2.1"
+version: "0.2.2"
 description: Plant and watering management for Home Assistant
 startup: services
 init: false
