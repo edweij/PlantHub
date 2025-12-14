@@ -54,4 +54,46 @@ public sealed class HomeAssistantLlTokenClient : AbstractHomeAssistantClient
 
         return Array.Empty<HaAreaLite>();
     }
+
+    public override async Task CreatePersistentNotificationAsync(
+    string title,
+    string message,
+    CancellationToken ct = default)
+    {
+        if (!IsEnabled) return;
+
+        var payload = new
+        {
+            title,
+            message
+        };
+
+        await PostJsonAsync(
+            "api/services/persistent_notification/create",
+            payload,
+            ct);
+    }
+
+    public override async Task SendPushNotificationAsync(
+    string notifyService,
+    string title,
+    string message,
+    CancellationToken ct = default)
+    {
+        if (!IsEnabled) return;
+
+        var parts = notifyService.Split('.', 2);
+        if (parts.Length != 2) return;
+
+        var payload = new
+        {
+            title,
+            message
+        };
+
+        await PostJsonAsync(
+            $"api/services/{parts[0]}/{parts[1]}",
+            payload,
+            ct);
+    }
 }

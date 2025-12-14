@@ -19,7 +19,7 @@ public record Plant
     public int? PotVolumeMl { get; set; }
 
     // Relative or absolute path to an image (e.g., /data/images/plants/123.jpg)
-    public string? ImagePath { get; set; }
+    public string? ImageUrl { get; set; }
 
     // Free-form notes
     public string? Notes { get; set; }
@@ -39,11 +39,12 @@ public record Plant
     public string? SensorEntityId { get; set; }
     public double? MoistureLowPercent { get; set; }
     public double? MoistureHighPercent { get; set; }
-
-    // ---- Tracking ----
-    public DateTime? LastWateredUtc { get; set; }
-
+    
     // Audit
     public DateTime CreatedUtc { get; init; } = DateTime.UtcNow;
     public DateTime? UpdatedUtc { get; set; }
+
+    public List<WateringEvent> WateringEvents { get; set; } = [];
+
+
 }

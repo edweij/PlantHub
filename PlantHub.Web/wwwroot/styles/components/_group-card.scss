@@ -109,4 +109,14 @@
         font-size: .75rem;
         color: var(--muted);
     }
+
+    .ph-card-footer {
+        margin-top: .4rem;
+        padding-top: .4rem;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: .5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.25); // svag divider (slate-400-ish i 25%)
+    }
 }

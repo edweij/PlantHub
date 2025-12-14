@@ -11,10 +11,10 @@
 
         <div class="ph-modal-dialog ph-modal-dialog--sm ph-modal-dialog--elevated" tabindex="-1">
             <div class="ph-modal-header">
-                <h2 class="ph-modal-title">Add plant</h2>
+                <h2 class="ph-modal-title">@ModalTitle</h2>
                 <button type="button" class="ph-icon-btn" @onclick="CloseAsync">✕</button>
             </div>
-            
+
             <EditForm EditContext="_editContext" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
                 <div class="ph-modal-body">
@@ -85,10 +85,10 @@
                         Cancel
                     </button>
                     <button type="submit" class="ph-btn ph-btn-primary">
-                        Save plant
+                        @PrimaryButtonText
                     </button>
                 </div>
-            </EditForm>            
+            </EditForm>
         </div>
     </div>
 }
@@ -96,23 +96,29 @@
 @code {
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
-
+    [Parameter] public int? DefaultWateringGroupId { get; set; }
     [Parameter] public IEnumerable<HaAreaLite> Areas { get; set; } = Enumerable.Empty<HaAreaLite>();
     [Parameter] public IEnumerable<WateringGroup> WateringGroups { get; set; } = Enumerable.Empty<WateringGroup>();
     [Parameter] public EventCallback<CreatePlantModel> OnSave { get; set; }
+
+
+    // 🔹 Ny: befintlig planta vid edit (null = add)
+    [Parameter] public Plant? ExistingPlant { get; set; }
 
     private CreatePlantModel _model = new();
     private EditContext? _editContext;
     private List<PhSelectField<string>.SelectItem> _areaOptions = new();
     private List<PhSelectField<int?>.SelectItem> _wgOptions = new();
+    private bool _wasOpen;
+
+    private bool IsEditMode => ExistingPlant is not null;
+    private string ModalTitle => IsEditMode ? "Edit plant" : "Add plant";
+    private string PrimaryButtonText => IsEditMode ? "Save changes" : "Save plant";
 
     protected override void OnParametersSet()
     {
-        if (_editContext is null || _editContext.Model != _model)
-            _editContext = new EditContext(_model);
-
         var now = DateTime.UtcNow;
-
+                
         _areaOptions = Areas
             .OrderBy(a => a.Name)
             .Select(a => new PhSelectField<string>.SelectItem(a.Id, a.Name))
@@ -132,11 +138,52 @@
                 return new PhSelectField<int?>.SelectItem(g.Id, label);
             })
             .ToList();
+
+        // 🔹 När modalen just öppnas: initiera modellen
+        if (IsOpen && !_wasOpen)
+        {
+            if (IsEditMode && ExistingPlant is not null)
+            {
+                _model = MapFromEntity(ExistingPlant);
+            }
+            else
+            {
+                _model = CreateEmptyModelForAdd();
+
+                if (DefaultWateringGroupId is not null)
+                {
+                    _model.WateringGroupId = DefaultWateringGroupId;
+                }
+            }
+
+            _editContext = new EditContext(_model);
+        }
+
+        _wasOpen = IsOpen;
     }
+
+    private CreatePlantModel CreateEmptyModelForAdd()
+        => new()
+        {
+            // tills sensor-UI finns
+            Mode = WateringMode.Schedule
+        };
+
+    private CreatePlantModel MapFromEntity(Plant p)
+        => new()
+        {
+            Name = p.Name,
+            LatinName = p.LatinName,
+            AreaId = p.AreaId,
+            WateringGroupId = p.WateringGroupId,
+            PotVolumeMl = p.PotVolumeMl,            
+            Notes = p.Notes,
+            Mode = p.Mode
+        };
 
     private async Task HandleValidSubmit()
     {
-        _model.Mode = WateringMode.Schedule; // tills sensor-UI finns
+        // Viktigt: vi sätter inte Mode här längre – det kommer från CreateEmptyModelForAdd eller MapFromEntity
 
         if (OnSave.HasDelegate)
             await OnSave.InvokeAsync(_model);
@@ -156,8 +203,9 @@
     {
         if (IsOpenChanged.HasDelegate)
             await IsOpenChanged.InvokeAsync(false);
-                    
-        _model = new CreatePlantModel();
+
+        _model = CreateEmptyModelForAdd();
         _editContext = new EditContext(_model);
+        _wasOpen = false;
     }
 }

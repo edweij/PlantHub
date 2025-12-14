@@ -3,9 +3,9 @@
 
 <div class="ph-plant-card" @onclick="() => OnClick.InvokeAsync(Plant)">
     <div class="ph-plant-media">
-        @if (!string.IsNullOrWhiteSpace(Plant.ImagePath))
+        @if (!string.IsNullOrWhiteSpace(Plant.ImageUrl))
         {
-            <img src="@Plant.ImagePath" alt="@Plant.Name" loading="lazy" />
+            <img src="@Plant.ImageUrl" alt="@Plant.Name" loading="lazy" />
         }
         else
         {
@@ -41,42 +41,109 @@
             {
                 <span class="ph-chip ph-chip-accent">@WateringGroupName</span>
             }
+
+            @if (Plant.PotVolumeMl is not null)
+            {
+                <span class="ph-chip">
+                    <span class="ph-emoji" aria-hidden="true">🪴</span>
+                    @FormatPotVolume(Plant.PotVolumeMl.Value)
+                </span>
+            }
         </div>
 
-        @if (NextWaterDate is not null)
+        @if (Plant.GetLastWatered() is not null)
         {
             <div class="ph-plant-water">
-                <span class="ph-water-label">Next watering</span>
-                <span class="ph-water-date">@NextWaterDate?.ToString("yyyy-MM-dd")</span>
-                @if (DaysOverdue is not null && DaysOverdue > 0)
-                {
-                    <span class="ph-overdue">+@DaysOverdue d</span>
-                }
+                <span class="ph-water-label">Last watered</span>
+
+                <span class="ph-water-date">@Plant.GetLastWatered()?.ToString("yyyy-MM-dd")</span>
             </div>
         }
+
+        <div class="ph-plant-water">
+            <span class="ph-water-label">Next watering</span>
+
+            @if (Plant.GetLastWatered() is null)
+            {
+                <span class="ph-water-date">Never watered</span>
+            }
+            else
+            {
+                <span class="ph-water-date">@Plant.ComputeNextWaterDate()?.ToString("yyyy-MM-dd")</span>
+
+                @if (Plant.GetDaysOverdue() is not null && Plant.GetDaysOverdue() > 0)
+                {
+                    <span class="ph-overdue">+@Plant.GetDaysOverdue() d</span>
+                }
+            }
+        </div>
+
+        
     </div>
 
     <div class="ph-plant-actions">
         @if (OnWaterNow.HasDelegate)
         {
-            <button class="ph-btn ph-btn-accent" @onclick:stopPropagation="true" @onclick="() => OnWaterNow.InvokeAsync(Plant)">Water now</button>
+            <PhTooltip Text="Water this plant now">
+                <button type="button"
+                        class="ph-icon-btn ph-icon-btn-water"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => OnWaterNow.InvokeAsync(Plant)">
+                    <span class="ph-emoji" aria-hidden="true">💦</span>
+                </button>
+            </PhTooltip>
+        }
+
+        @if (Plant.GetLastWatered() is null && OnCheckNow.HasDelegate)
+        {
+            <PhTooltip Text="Check watering now">
+                <button type="button"
+                        class="ph-icon-btn ph-icon-btn-check"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => OnCheckNow.InvokeAsync(Plant)">
+                    <span class="ph-emoji" aria-hidden="true">🧪</span>
+                </button>
+            </PhTooltip>
+        }
+
+         @if (OnEditImage.HasDelegate)
+        {
+            <PhTooltip Text="Edit plant image">
+                <button type="button"
+                        class="ph-icon-btn ph-icon-btn-image"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => OnEditImage.InvokeAsync(Plant)">
+                    <span class="ph-emoji" aria-hidden="true">📷</span>
+                </button>
+            </PhTooltip>
         }
         @if (OnEdit.HasDelegate)
         {
-            <button class="ph-btn" @onclick:stopPropagation="true" @onclick="() => OnEdit.InvokeAsync(Plant)">Edit</button>
+            <PhTooltip Text="Edit plant settings">
+                <button type="button"
+                        class="ph-icon-btn ph-icon-btn-edit"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => OnEdit.InvokeAsync(Plant)">
+                    <span class="ph-emoji" aria-hidden="true">🛠️</span>
+                </button>
+            </PhTooltip>
         }
+
         @if (OnDelete.HasDelegate)
         {
-            <button class="ph-btn ph-btn-danger"
-                    @onclick:stopPropagation="true"
-                    @onclick="() => OnDelete.InvokeAsync(Plant)">
-                <svg class="ph-ico" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M6 7h12l-1 13H7L6 7zm3-3h6l1 2H8l1-2z" />
-                </svg>
-                Delete
-            </button>
+            <PhTooltip Text="Delete plant">
+                <button type="button"
+                        class="ph-icon-btn ph-icon-btn-delete"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => OnDelete.InvokeAsync(Plant)">
+                    <span class="ph-emoji" aria-hidden="true">🗑️</span>
+                </button>
+            </PhTooltip>
         }
     </div>
+
+    
+
 </div>
 
 @code {
@@ -87,9 +154,7 @@
     // Optional: display name for watering group
     [Parameter] public string? WateringGroupName { get; set; }
 
-    // Optional: precomputed next watering hint (keeps the component dumb)
-    [Parameter] public DateTime? NextWaterDate { get; set; }
-    [Parameter] public int? DaysOverdue { get; set; }
+    
 
     // Optional: a small status badge, e.g. "Needs water", "OK", "Winter rest"
     [Parameter] public string? StatusBadge { get; set; }
@@ -99,6 +164,10 @@
     [Parameter] public EventCallback<Plant> OnEdit { get; set; }
     [Parameter] public EventCallback<Plant> OnWaterNow { get; set; }
     [Parameter] public EventCallback<Plant> OnDelete { get; set; }
+    [Parameter] public EventCallback<Plant> OnEditImage { get; set; }
+    [Parameter] public EventCallback<Plant> OnCheckNow { get; set; }
+
+    
 
     private static string GetInitials(string? s)
     {
@@ -110,5 +179,17 @@
             1 => parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant(),
             _ => (parts[0][0].ToString() + parts[^1][0]).ToUpperInvariant()
         };
+    }
+
+    private static string FormatPotVolume(int ml)
+    {
+        // Visa i liter med max 1 decimal, utan .0
+        var liters = ml / 1000.0;
+
+        if (liters >= 1)
+            return $"{liters:0.#} L";
+
+        // Små krukor: visa i ml
+        return $"{ml} ml";
     }
 }

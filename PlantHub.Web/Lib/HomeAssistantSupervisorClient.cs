@@ -78,4 +78,46 @@ public sealed class HomeAssistantSupervisorClient : AbstractHomeAssistantClient
         Console.WriteLine($"[PlantHub] (supervisor) Unexpected WS response: {resp}");
         return Array.Empty<HaAreaLite>();
     }
+
+    public override async Task CreatePersistentNotificationAsync(
+    string title,
+    string message,
+    CancellationToken ct = default)
+    {
+        if (!IsEnabled) return;
+        var payload = new
+        {
+            title,
+            message
+        };
+
+        await PostJsonAsync(
+            "services/persistent_notification/create",
+            payload,
+            ct);
+    }
+
+    public override async Task SendPushNotificationAsync(
+    string notifyService,
+    string title,
+    string message,
+    CancellationToken ct = default)
+    {
+        if (!IsEnabled) return;
+
+        // notify.mobile_app_xxx → notify / mobile_app_xxx
+        var parts = notifyService.Split('.', 2);
+        if (parts.Length != 2) return;
+
+        var payload = new
+        {
+            title,
+            message
+        };
+
+        await PostJsonAsync(
+            $"services/{parts[0]}/{parts[1]}",
+            payload,
+            ct);
+    }
 }

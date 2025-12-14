@@ -33,18 +33,28 @@
     overflow: hidden;
     transform: translateY(0);
     animation: phModalIn .15s ease-out;
-    /* Header/Body/Footer */
+
     .ph-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
         padding: 1rem 1rem .5rem;
 
         .ph-modal-title {
             margin: 0;
             font-size: 1.1rem;
             font-weight: 700;
+            // Valfritt: gör så att titeln tar plats och knappen “packas” till höger
+            flex: 1 1 auto;
         }
-        /* Tillåter H2 direkt inuti headern (AddPlant) */
+
         h2 {
             margin: 0;
+        }
+
+        .ph-icon-btn {
+            flex: 0 0 auto;
         }
     }
 

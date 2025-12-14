@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using PlantHub.Infrastructure;
 using PlantHub.Web.Components;
+using PlantHub.Web.Components.PhToast;
 using PlantHub.Web.Infrastructure;
 using PlantHub.Web.Lib;
-using PlantHub.Web.Services;
 using System.Data.Common;
 using System.Net;
 
@@ -34,6 +33,26 @@ var cs = builder.Configuration.GetConnectionString("PlantHub")
 builder.Services.AddDbContext<PlantHubDbContext>(opt => opt.UseSqlite(cs));
 builder.Services.AddScoped<IWateringGroupService, WateringGroupService>();
 builder.Services.AddScoped<IPlantService, PlantService>();
+builder.Services.AddScoped<PhToastService>();
+
+if (!string.IsNullOrWhiteSpace(sup))
+{
+    Console.WriteLine("[PlantHub] Image storage = Addon mode (/config/www/...)");
+    builder.Services.AddScoped<IImageStorageService, AddonImageStorageService>();
+}
+else
+{
+    Console.WriteLine("[PlantHub] Image storage = Local mode (wwwroot/local/...)");
+    builder.Services.AddScoped<IImageStorageService, LocalImageStorageService>();
+}
+
+// ---- Notification service ----
+builder.Services.Configure<NotificationSettings>(builder.Configuration.GetSection("Notifications"));
+builder.Services.AddScoped<PlantHubNotificationService>();
+
+// Add watering monitor service
+builder.Services.AddScoped<WateringCheckService>();
+builder.Services.AddHostedService<WateringMonitorService>();
 
 // ---- UI stack (Blazor Server) ----
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -159,32 +178,6 @@ app.UseAntiforgery();
 
 // --- Basic health endpoint ---
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTimeOffset.UtcNow }));
-
-// --- Minimal image endpoint (from /data) ---
-// GET /images/plants/<filename>
-// Streams an image from the HA persistent volume.
-// NOTE: Small traversal guard; extend if you later allow nested folders or uploads.
-app.MapGet("/images/plants/{file}", async (string file) =>
-{
-    var root = "/data/images/plants";
-    var safe = file.Replace("\\", "/");
-    if (safe.Contains("..")) return Results.BadRequest();
-
-    var path = Path.Combine(root, safe);
-    if (!System.IO.File.Exists(path)) return Results.NotFound();
-
-    var ext = Path.GetExtension(path).ToLowerInvariant();
-    var contentType = ext switch
-    {
-        ".png" => "image/png",
-        ".jpg" or ".jpeg" => "image/jpeg",
-        ".webp" => "image/webp",
-        _ => "application/octet-stream"
-    };
-
-    var stream = File.OpenRead(path);
-    return Results.Stream(stream, contentType);
-});
 
 // Map Blazor Server app
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();

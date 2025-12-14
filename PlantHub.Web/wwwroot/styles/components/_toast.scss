@@ -1,0 +1,35 @@
+﻿.ph-toast-host {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    z-index: 1000;
+
+    .ph-toast {
+        padding: .6rem .85rem;
+        border-radius: .5rem;
+        font-size: .85rem;
+        background: var(--surface);
+        color: var(--fg);
+        box-shadow: 0 6px 18px rgba(0,0,0,.15);
+        border-left: 4px solid transparent;
+    }
+
+    .ph-toast-success {
+        border-left-color: #22c55e;
+    }
+
+    .ph-toast-info {
+        border-left-color: #3b82f6;
+    }
+
+    .ph-toast-warning {
+        border-left-color: #f59e0b;
+    }
+
+    .ph-toast-error {
+        border-left-color: #ef4444;
+    }
+}

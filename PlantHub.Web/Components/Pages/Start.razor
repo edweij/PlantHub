@@ -2,52 +2,163 @@
 @rendermode InteractiveServer
 @using PlantHub.Web.Components.Plants
 
-
-
 <PageTitle>PlantHub</PageTitle>
 
 <main class="ph-layout">
     <section class="ph-topbar">
-        <AddPlantButton OnClick="HandleAddPlantClick" />
+        <PhTooltip Text="Add plant">
+            <PhActionButton Icon="🌱"
+                            AriaLabel="Add plant"
+                            OnClick="HandleAddPlantClick" />
+        </PhTooltip>
+        <PhTooltip Text="Add watering group">
+            <PhActionButton Icon="💧"
+                            AriaLabel="Add watering group"
+                            OnClick="HandleAddWateringGroupClick" />
+        </PhTooltip>
+        
     </section>
 
     <section class="ph-content">
-        <PlantGroupsList Areas="_areas" />
+        <PlantGroupsList Areas="_areas" @ref="_plantGroupsListRef" OnDeleteGroup="RequestDeleteGroup" OnAddPlant="HandleAddPlantForGroup" />
     </section>
 </main>
 
-<AddPlantModal IsOpen="_showAddPlantModal"
-               Areas="_areas"
-               WateringGroups="_wateringGroups"
-               OnSave="HandleAddPlantSave"
-               IsOpenChanged="OnAddPlantModalChanged" />
+<AddEditPlantModal IsOpen="_showAddPlantModal"
+                   Areas="_areas"
+                   WateringGroups="_wateringGroups"
+                   DefaultWateringGroupId="_prefillGroupForNewPlant?.Id"
+                   OnSave="HandleAddPlantSave"
+                   IsOpenChanged="OnAddPlantModalChanged" />
+
+<AddEditWateringGroupModal IsOpen="_showAddWateringGroupModal"
+                       IsOpenChanged="OnAddWateringGroupModalChanged"
+                       OnSave="HandleAddWateringGroupSave" />
+
+<PhConfirmModal IsOpen="_deleteGroupOpen"
+                IsOpenChanged="@(v => _deleteGroupOpen = v)"
+                Title="Delete watering group"
+                Message="@(_pendingGroupDelete is null ? null : $"Are you sure you want to delete '{_pendingGroupDelete.Name}'? This cannot be undone.")"
+                CancelText="Cancel"
+                ConfirmText="Delete"
+                OnConfirm="ConfirmDeleteGroupAsync"
+                OnCancel="CancelDeleteGroup" />
+
+<PhToastHost />
 
 @code {
     [Inject] public IHomeAssistantClient HaClient { get; set; } = default!;
     [Inject] public IWateringGroupService WateringGroupService { get; set; } = default!;
     [Inject] public IPlantService PlantService { get; set; } = default!;
+    [Inject] PhToastService Toasts { get; set; } = default!;
 
     private bool _showAddPlantModal;
+    private bool _showAddWateringGroupModal;
     private IReadOnlyList<HaAreaLite> _areas = Array.Empty<HaAreaLite>();
     private IReadOnlyList<WateringGroup> _wateringGroups = Array.Empty<WateringGroup>();
+
+    private PlantGroupsList? _plantGroupsListRef;
+
+    private bool _deleteGroupOpen;
+    private WateringGroup? _pendingGroupDelete;
 
     protected override async Task OnInitializedAsync()
     {
         if (HaClient.IsEnabled)
         {
             _areas = await HaClient.GetAreasAsync();
-        }
-        _wateringGroups = await WateringGroupService.GetAllAsync();
+        }        
+        await LoadWateringGroupsAsync();
+    }    
+
+
+    private void OnAddWateringGroupModalChanged(bool value)
+    {
+        _showAddWateringGroupModal = value;
     }
 
-    private void HandleAddPlantClick()
+    private void RequestDeleteGroup(WateringGroup group)
     {
+        _pendingGroupDelete = group;
+        _deleteGroupOpen = true;
+        StateHasChanged();
+    }
+
+    private Task HandleAddWateringGroupClick()
+    {
+        _showAddWateringGroupModal = true;
+        return Task.CompletedTask;
+    }
+
+    private async Task ConfirmDeleteGroupAsync()
+    {
+        if (_pendingGroupDelete is null) return;
+
+        // soft delete via service
+        await WateringGroupService.DeleteAsync(_pendingGroupDelete);
+        Toasts.Show($"'{_pendingGroupDelete.Name}' deleted", PhToastLevel.Warning);
+
+
+        // Nollställ state och ladda om listan
+        _pendingGroupDelete = null;
+        if (_plantGroupsListRef is not null)
+        {
+            await _plantGroupsListRef.ReloadAsync();
+        }
+        StateHasChanged();
+    }
+
+    private void CancelDeleteGroup()
+    {
+        _pendingGroupDelete = null;
+        _deleteGroupOpen = false;
+    }
+
+    private async Task HandleAddWateringGroupSave(CreateWateringGroupModel model)
+    {
+        var entity = model.ToEntity();
+        var saved = await WateringGroupService.AddAsync(entity);
+        Toasts.Show($"Watering group '{saved.Name}' added 🌱", PhToastLevel.Success);
+
+
+        Console.WriteLine(
+            $"[PlantHub] Saved watering group #{saved.Id}: {saved.Name} " +
+            $"(summer={saved.IntervalDaysSummer}, winter={saved.IntervalDaysWinter})");
+
+        await LoadWateringGroupsAsync();     
+
+        if (_plantGroupsListRef is not null)
+        {
+            await _plantGroupsListRef.ReloadAsync();
+        }
+    }
+
+    private async Task LoadWateringGroupsAsync()
+    {
+        _wateringGroups = (await WateringGroupService.GetAllAsync()).ToList();
+    }
+
+    private WateringGroup? _prefillGroupForNewPlant;
+
+    private void HandleAddPlantForGroup(WateringGroup group)
+    {
+        _prefillGroupForNewPlant = group;
         _showAddPlantModal = true;
     }
 
     private void OnAddPlantModalChanged(bool value)
     {
         _showAddPlantModal = value;
+        if (!value)
+        {
+            _prefillGroupForNewPlant = null;
+        }
+    }
+
+    private Task HandleAddPlantClick()
+    {
+        _showAddPlantModal = true; // eller vad du nu använder
+        return Task.CompletedTask;
     }
 
     private async Task HandleAddPlantSave(CreatePlantModel model)
@@ -55,10 +166,9 @@
         // Formvalidering har redan skett via EditForm + IValidatableObject
         var entity = model.ToEntity();
         var saved = await PlantService.AddAsync(entity);
+        Toasts.Show($"Plant '{saved.Name}' added 🌱", PhToastLevel.Success);
 
         Console.WriteLine($"[PlantHub] Saved plant #{saved.Id}: {saved.Name} (WG={saved.WateringGroupId}, Area={saved.AreaId}, Vol={saved.PotVolumeMl})");
-
-        // TODO: trigga UI-refresh av listor. Ex:
-        // await _plantsListRef.ReloadAsync();
+        
     }
 }

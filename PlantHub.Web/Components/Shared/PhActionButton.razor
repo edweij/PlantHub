@@ -1,0 +1,17 @@
+﻿<button type="button"
+        class="ph-icon-btn"
+        @onclick="OnClick"
+        aria-label="@AriaLabel">
+    @Icon
+</button>
+
+@code {
+    [Parameter]
+    public string Icon { get; set; } = "❔"; // fallback
+
+    [Parameter]
+    public string AriaLabel { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+}

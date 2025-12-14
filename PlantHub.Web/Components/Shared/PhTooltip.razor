@@ -1,0 +1,16 @@
+﻿@* Components/Shared/PhTooltip.razor *@
+<div class="ph-tooltip">
+    @ChildContent
+
+    @if (!string.IsNullOrWhiteSpace(Text))
+    {
+        <div class="ph-tooltip-bubble" role="tooltip">
+            @Text
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public RenderFragment ChildContent { get; set; } = default!;
+}

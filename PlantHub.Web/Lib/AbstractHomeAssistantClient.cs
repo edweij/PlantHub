@@ -10,6 +10,16 @@ public interface IHomeAssistantClient
 {
     bool IsEnabled { get; }
     Task<IReadOnlyList<HaAreaLite>> GetAreasAsync(CancellationToken ct = default);
+
+    Task CreatePersistentNotificationAsync(
+        string title,
+        string message,
+        CancellationToken ct = default);
+    Task SendPushNotificationAsync(
+        string notifyService,
+        string title,
+        string message,
+        CancellationToken ct = default);
 }
 
 public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
@@ -29,6 +39,14 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
     }
 
     public abstract Task<IReadOnlyList<HaAreaLite>> GetAreasAsync(CancellationToken ct = default);
+
+    public abstract Task CreatePersistentNotificationAsync(string title, string message, CancellationToken ct = default);
+
+    public abstract Task SendPushNotificationAsync(
+        string notifyService,
+        string title,
+        string message,
+        CancellationToken ct = default);
 
     protected static Uri BuildWebSocketUri(Uri baseUri)
     {
@@ -87,6 +105,19 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
             http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         using var resp = await http.GetAsync("", ct);
         return (int)resp.StatusCode;
+    }
+
+    protected async Task PostJsonAsync(string relativePath, object payload, CancellationToken ct)
+    {
+        if (!IsEnabled || BaseUri is null || Token is null)
+            return;
+
+        using var http = new HttpClient { BaseAddress = BaseUri };
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+
+        using var resp = await http.PostAsJsonAsync(relativePath, payload, ct);
+        resp.EnsureSuccessStatusCode();
     }
 
     protected static List<HaAreaLite> ParseAreaList(JsonElement result)

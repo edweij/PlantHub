@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PlantHub.Web.Infrastructure;
 
@@ -10,9 +11,11 @@ using PlantHub.Web.Infrastructure;
 namespace PlantHub.Web.Migrations
 {
     [DbContext(typeof(PlantHubDbContext))]
-    partial class PlantHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251211194916_RenameImagePathToImageUrl")]
+    partial class RenameImagePathToImageUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -38,6 +41,9 @@ namespace PlantHub.Web.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastWateredUtc")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LatinName")
                         .HasMaxLength(200)
@@ -89,25 +95,6 @@ namespace PlantHub.Web.Migrations
 
                             t.HasCheckConstraint("CK_Plant_ScheduleGroup", "(Mode <> 0) OR (WateringGroupId IS NOT NULL)");
                         });
-                });
-
-            modelBuilder.Entity("PlantHub.Web.Domain.WateringEvent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PlantId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("TimestampUtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlantId");
-
-                    b.ToTable("WateringEvents", (string)null);
                 });
 
             modelBuilder.Entity("PlantHub.Web.Domain.WateringGroup", b =>
@@ -238,22 +225,6 @@ namespace PlantHub.Web.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("WateringGroup");
-                });
-
-            modelBuilder.Entity("PlantHub.Web.Domain.WateringEvent", b =>
-                {
-                    b.HasOne("PlantHub.Web.Domain.Plant", "Plant")
-                        .WithMany("WateringEvents")
-                        .HasForeignKey("PlantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Plant");
-                });
-
-            modelBuilder.Entity("PlantHub.Web.Domain.Plant", b =>
-                {
-                    b.Navigation("WateringEvents");
                 });
 
             modelBuilder.Entity("PlantHub.Web.Domain.WateringGroup", b =>

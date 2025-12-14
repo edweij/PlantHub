@@ -24,15 +24,17 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: .75rem;
+    gap: .5rem; // lite tightare, funkar bra med små ikonknappar
     position: sticky;
     top: 0;
-    padding-bottom: .5rem;
-    margin-bottom: .5rem;
+    padding: .5rem 0; // vertikal padding, horisontell tas av container
+    margin-bottom: .75rem;
     background: var(--bg);
-    z-index: 10;
-    /* subtil border under topbarn */
-    border-bottom: 1px solid rgba(148, 163, 253, 0.0); // kan göras 0.1 om du vill se linje
+    backdrop-filter: blur(8px); // soft glass-känsla när man scrollar
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(148, 163, 253, 0.12); // diskret linje
+    z-index: 20; // lite högre än korten
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 /* Själva innehållet under topbaren */

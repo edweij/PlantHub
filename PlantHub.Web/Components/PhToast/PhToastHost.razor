@@ -1,0 +1,38 @@
+﻿@inject PhToastService Toasts
+@implements IDisposable
+
+<div class="ph-toast-host">
+    @foreach (var toast in _toasts)
+    {
+        <div class="ph-toast ph-toast-@toast.Level.ToString().ToLower()">
+            <span>@toast.Text</span>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<PhToastMessage> _toasts = new();
+
+    protected override void OnInitialized()
+    {
+        Toasts.OnShow += ShowToast;
+    }
+
+    private void ShowToast(PhToastMessage toast)
+    {
+        _toasts.Add(toast);
+        StateHasChanged();
+
+        _ = Task.Delay(toast.Duration)
+            .ContinueWith(_ =>
+            {
+                _toasts.Remove(toast);
+                InvokeAsync(StateHasChanged);
+            });
+    }
+
+    public void Dispose()
+    {
+        Toasts.OnShow -= ShowToast;
+    }
+}

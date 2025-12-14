@@ -25,7 +25,7 @@ public class PlantConfiguration : IEntityTypeConfiguration<Plant>
         b.Property(x => x.PotVolumeMl);
 
         // Image path (relative or absolute)
-        b.Property(x => x.ImagePath).HasMaxLength(400);
+        b.Property(x => x.ImageUrl).HasMaxLength(400);
 
         // Watering mode enum
         b.Property(x => x.Mode).IsRequired();
@@ -42,7 +42,6 @@ public class PlantConfiguration : IEntityTypeConfiguration<Plant>
         b.Property(x => x.MoistureHighPercent);
 
         // Tracking & audit
-        b.Property(x => x.LastWateredUtc);
         b.Property(x => x.CreatedUtc).HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAdd().IsRequired();
         b.Property(x => x.UpdatedUtc);
 

@@ -11,11 +11,14 @@ public class PlantHubDbContext : DbContext
 
     public DbSet<Plant> Plants => Set<Plant>();
     public DbSet<WateringGroup> WateringGroups => Set<WateringGroup>();
+    public DbSet<WateringEvent> WateringEvents => Set<WateringEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new PlantConfiguration());
         modelBuilder.ApplyConfiguration(new WateringGroupConfiguration());
+        modelBuilder.ApplyConfiguration(new WateringEventConfiguration());
+
         modelBuilder.SeedWateringGroups();
     }
 

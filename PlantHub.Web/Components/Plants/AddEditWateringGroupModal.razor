@@ -1,0 +1,195 @@
+﻿@using PlantHub.Web.Domain
+@using PlantHub.Web.Lib
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@if (IsOpen)
+{
+    <div class="ph-modal" role="dialog" aria-modal="true" @onkeydown="HandleKeyDown">
+        <div class="ph-modal-backdrop" @onclick="CloseAsync"></div>
+
+        <div class="ph-modal-dialog ph-modal-dialog--sm ph-modal-dialog--elevated" tabindex="-1">
+            <div class="ph-modal-header">
+                <h2 class="ph-modal-title">@ModalTitle</h2>
+                <button type="button" class="ph-icon-btn" @onclick="CloseAsync">✕</button>
+            </div>
+
+            <EditForm EditContext="_editContext" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="ph-modal-body">
+                    <!-- Name -->
+                    <PhTextField Label="Name"
+                                 Placeholder="e.g. Monsteras in living room"
+                                 @bind-Value="_model.Name" />
+
+                    <!-- Description -->
+                    <div class="ph-field">
+                        <label class="ph-label">Description</label>
+                        <textarea class="ph-textarea"
+                                  @bind="_model.Description"
+                                  rows="3"
+                                  placeholder="What kind of plants, light, soil, etc."></textarea>
+                    </div>
+
+                    <!-- Base intervals -->
+                    <div class="ph-field">
+                        <label class="ph-label">Watering interval</label>
+                        <div class="ph-grid-2">
+                            <div>
+                                <label class="ph-label-sm">Summer (days)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.IntervalDaysSummer" />
+                            </div>
+                            <div>
+                                <label class="ph-label-sm">Winter (days)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.IntervalDaysWinter" />
+                            </div>
+                        </div>
+                        <div class="ph-hint">
+                            Used as default interval when scheduling waterings.
+                        </div>
+                    </div>
+
+                    <!-- Summer period -->
+                    <div class="ph-field">
+                        <label class="ph-label">Summer period (months)</label>
+                        <div class="ph-grid-2">
+                            <div>
+                                <label class="ph-label-sm">Start (1–12)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.SummerStartMonth"
+                                             min="1" max="12" />
+                            </div>
+                            <div>
+                                <label class="ph-label-sm">End (1–12)</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.SummerEndMonth"
+                                             min="1" max="12" />
+                            </div>
+                        </div>
+                        <div class="ph-hint">
+                            Determines when summer vs winter intervals apply.
+                        </div>
+                    </div>
+
+                    <!-- Optional range -->
+                    <div class="ph-field">
+                        <label class="ph-label">Optional safety range</label>
+                        <div class="ph-grid-2">
+                            <div>
+                                <label class="ph-label-sm">Min days between</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.MinDaysBetween" />
+                            </div>
+                            <div>
+                                <label class="ph-label-sm">Max days between</label>
+                                <InputNumber class="ph-input"
+                                             @bind-Value="_model.MaxDaysBetween" />
+                            </div>
+                        </div>
+                        <div class="ph-hint">
+                            If set, PlantHub will not suggest watering more often than min or
+                            less often than max.
+                        </div>
+                    </div>
+
+                    <ValidationSummary class="ph-validation-summary" />
+                </div>
+
+                <div class="ph-modal-footer">
+                    <button type="button" class="ph-btn ph-btn-ghost" @onclick="CloseAsync">
+                        Cancel
+                    </button>
+                    <button type="submit" class="ph-btn ph-btn-primary">
+                        @PrimaryButtonText
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    // Återanvänd samma callback för både add & edit
+    [Parameter] public EventCallback<CreateWateringGroupModel> OnSave { get; set; }
+
+    // === Nytt: läge & befintlig grupp vid edit ===
+    [Parameter] public WateringGroup? ExistingGroup { get; set; } // null = create
+
+    private CreateWateringGroupModel _model = new();
+    private EditContext? _editContext;
+    private bool _wasOpen;
+
+    private bool IsEditMode => ExistingGroup is not null;
+
+    private string ModalTitle => IsEditMode ? "Edit watering group" : "Add watering group";
+    private string PrimaryButtonText => IsEditMode ? "Save changes" : "Save group";
+
+    protected override void OnParametersSet()
+    {
+        // När modalen just öppnas: initiera modellen
+        if (IsOpen && !_wasOpen)
+        {
+            if (IsEditMode && ExistingGroup is not null)
+            {
+                _model = MapFromEntity(ExistingGroup);
+            }
+            else
+            {
+                _model = new CreateWateringGroupModel();
+            }
+
+            _editContext = new EditContext(_model);
+        }
+
+        _wasOpen = IsOpen;
+    }
+
+    private CreateWateringGroupModel MapFromEntity(WateringGroup g)
+    {
+        // Justera egenskapsnamn om de skiljer sig
+        return new CreateWateringGroupModel
+        {
+            Name = g.Name,
+            Description = g.Description,
+            IntervalDaysSummer = g.IntervalDaysSummer,
+            IntervalDaysWinter = g.IntervalDaysWinter,
+            SummerStartMonth = g.SummerStartMonth,
+            SummerEndMonth = g.SummerEndMonth,
+            MinDaysBetween = g.MinDaysBetween,
+            MaxDaysBetween = g.MaxDaysBetween
+        };
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (OnSave.HasDelegate)
+            await OnSave.InvokeAsync(_model);
+
+        await CloseInternalAsync();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await CloseAsync();
+    }
+
+    private async Task CloseAsync() => await CloseInternalAsync();
+
+    private async Task CloseInternalAsync()
+    {
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(false);
+
+        // Nollställ så nästa öppning startar fräscht
+        _model = new CreateWateringGroupModel();
+        _editContext = new EditContext(_model);
+        _wasOpen = false;
+    }
+}

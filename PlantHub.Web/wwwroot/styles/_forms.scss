@@ -4,6 +4,15 @@
     display: flex;
     flex-direction: column;
     gap: .2rem;
+
+    .ph-plant-image-preview {
+        width: 150px;
+        height: 150px;
+        border-radius: .75rem;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        background: var(--surface);
+    }
 }
 
 .ph-label {

@@ -25,10 +25,7 @@ public class CreatePlantModel
     public double? PotDiameterCm { get; set; }
 
     [Range(1, 200)]
-    public double? PotHeightCm { get; set; }
-
-    [MaxLength(260)]
-    public string? ImagePath { get; set; }
+    public double? PotHeightCm { get; set; }    
 
     [MaxLength(500)]
     public string? Notes { get; set; }
@@ -82,7 +79,6 @@ public static class PlantMapping
             Mode = m.Mode,
             WateringGroupId = m.Mode == WateringMode.Schedule ? m.WateringGroupId : null,
             PotVolumeMl = potVolume,
-            ImagePath = string.IsNullOrWhiteSpace(m.ImagePath) ? null : m.ImagePath.Trim(),
             Notes = string.IsNullOrWhiteSpace(m.Notes) ? null : m.Notes.Trim(),
             SensorEntityId = m.Mode == WateringMode.Sensor ? m.SensorEntityId : null,
             MoistureLowPercent = m.Mode == WateringMode.Sensor ? m.MoistureLowPercent : null,
