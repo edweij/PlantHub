@@ -16,8 +16,14 @@ fi
 LOG_LEVEL="$(jq -r '.log_level // "info"' "$OPTIONS_FILE")"
 BASE_URL="$(jq -r '.base_url // empty' "$OPTIONS_FILE")"
 TOKEN="$(jq -r '.token // empty' "$OPTIONS_FILE")"
+ALLOW_PUSH="$(jq -r '.allow_push // false' "$OPTIONS_FILE")"
+PUSH_ENABLED="$(jq -r '.push_enabled // false' "$OPTIONS_FILE")"
 
 export PLANTHUB__LOG_LEVEL="$LOG_LEVEL"
+export HA__BaseUrl="$BASE_URL"
+export HA__Token="$TOKEN"
+export Notifications__AllowPush="$ALLOW_PUSH"
+export Notifications__PushEnabled="$PUSH_ENABLED"
 
 if [ -n "$BASE_URL" ]; then
   export PLANTHUB__BASE_URL="$BASE_URL"
@@ -27,5 +33,11 @@ if [ -n "$TOKEN" ]; then
   export PLANTHUB__TOKEN="$TOKEN"
 fi
 
-echo "[PlantHub] Configuration loaded (log_level=$LOG_LEVEL)"
+for i in $(jq -r '.push_notify_services // [] | to_entries[] | "\(.key)=\(.value)"' "$OPTIONS_FILE"); do
+  idx="${i%%=*}"
+  value="${i#*=}"
+  export "Notifications__PushNotifyServices__${idx}=${value}"
+done
+
+echo "[PlantHub] Configuration loaded (log_level=$LOG_LEVEL, push_enabled=$PUSH_ENABLED)"
 exit 0

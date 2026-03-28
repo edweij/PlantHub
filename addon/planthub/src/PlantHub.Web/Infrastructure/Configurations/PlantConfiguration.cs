@@ -44,6 +44,7 @@ public class PlantConfiguration : IEntityTypeConfiguration<Plant>
         // Tracking & audit
         b.Property(x => x.CreatedUtc).HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAdd().IsRequired();
         b.Property(x => x.UpdatedUtc);
+        b.Property(x => x.LastWateringReminderUtc);
 
         // DB-level constraints
         b.ToTable(t =>

@@ -15,3 +15,18 @@ homeassistant_api: true
 hassio_api: true
 map:
   - config:rw
+options:
+  log_level: info
+  base_url: ""
+  token: ""
+  allow_push: false
+  push_enabled: false
+  push_notify_services: []
+schema:
+  log_level: "list(trace|debug|info|notice|warning|error|fatal)?"
+  base_url: "str?"
+  token: "password?"
+  allow_push: "bool"
+  push_enabled: "bool"
+  push_notify_services:
+    - "str"

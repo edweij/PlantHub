@@ -39,9 +39,15 @@ public sealed class WateringMonitorService : BackgroundService
                 if (!ShouldRunNow(now))
                     continue;
 
-                await CheckPlantsAsync(stoppingToken);
-
-                _lastRunDate = DateOnly.FromDateTime(now);
+                try
+                {
+                    await CheckPlantsAsync(stoppingToken);
+                    _lastRunDate = DateOnly.FromDateTime(now);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[WateringMonitor] Check failed; will retry on next tick in the window");
+                }
             }
         }
         catch (OperationCanceledException)

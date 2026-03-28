@@ -43,6 +43,7 @@ public record Plant
     // Audit
     public DateTime CreatedUtc { get; init; } = DateTime.UtcNow;
     public DateTime? UpdatedUtc { get; set; }
+    public DateTime? LastWateringReminderUtc { get; set; }
 
     public List<WateringEvent> WateringEvents { get; set; } = [];
 

@@ -6,12 +6,15 @@ public sealed class PlantHubNotificationService
 {
     private readonly IHomeAssistantClient _ha;
     private readonly NotificationSettings _settings;
+    private readonly ILogger<PlantHubNotificationService> _logger;
 
     public PlantHubNotificationService(
         IHomeAssistantClient ha,
+        ILogger<PlantHubNotificationService> logger,
         IOptions<NotificationSettings> options)
     {
         _ha = ha;
+        _logger = logger;
         _settings = options.Value;
     }
 
@@ -32,11 +35,18 @@ public sealed class PlantHubNotificationService
             if (string.IsNullOrWhiteSpace(service))
                 continue;
 
-            await _ha.SendPushNotificationAsync(
-                service,
-                title,
-                message,
-                ct);
+            try
+            {
+                await _ha.SendPushNotificationAsync(
+                    service,
+                    title,
+                    message,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Notifications] Failed to send push via {Service}", service);
+            }
         }
     }
 }

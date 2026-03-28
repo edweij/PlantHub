@@ -53,11 +53,13 @@ namespace PlantHub.Web.Infrastructure
 
         public async Task MarkWateredAsync(int plantId, CancellationToken ct = default)
         {
-            var exists = await _db.Plants
-                .AnyAsync(p => p.Id == plantId);
+            var plant = await _db.Plants
+                .SingleOrDefaultAsync(p => p.Id == plantId, ct);
 
-            if (!exists)
+            if (plant is null)
                 throw new InvalidOperationException("Plant not found");
+
+            plant.LastWateringReminderUtc = null;
 
             var evt = new WateringEvent
             {
@@ -66,18 +68,19 @@ namespace PlantHub.Web.Infrastructure
             };
 
             _db.WateringEvents.Add(evt);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
         }
 
         public async Task MarkWateredGroupAsync(int wateringGroupId, CancellationToken ct = default)
         {
-            var plantIds = await _db.Plants
-        .Where(p => p.WateringGroupId == wateringGroupId)
-        .Select(p => p.Id)
-        .ToListAsync();
+            var plants = await _db.Plants
+                .Where(p => p.WateringGroupId == wateringGroupId)
+                .ToListAsync(ct);
 
-            if (plantIds.Count == 0)
+            if (plants.Count == 0)
                 return;
+
+            var plantIds = plants.Select(p => p.Id).ToList();
 
             var now = DateTime.UtcNow;
 
@@ -91,16 +94,18 @@ namespace PlantHub.Web.Infrastructure
             if (last != default && (now - last).TotalMinutes < 5)
                 return;
 
-            foreach (var plantId in plantIds)
+            foreach (var plant in plants)
             {
+                plant.LastWateringReminderUtc = null;
+
                 _db.WateringEvents.Add(new WateringEvent
                 {
-                    PlantId = plantId,
+                    PlantId = plant.Id,
                     TimestampUtc = now
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
         }
     }
 }
