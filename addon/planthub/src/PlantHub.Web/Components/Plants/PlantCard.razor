@@ -55,7 +55,7 @@
         {
             <div class="ph-plant-water">
                 <span class="ph-water-label">Moisture sensor</span>
-                <span class="ph-water-date">@Plant.SensorEntityId</span>
+                <span class="ph-water-date ph-water-date-truncate" title="@Plant.SensorEntityId">@Plant.SensorEntityId</span>
             </div>
 
             @if (Plant.MoistureLowPercent is not null)

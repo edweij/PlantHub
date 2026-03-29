@@ -125,6 +125,15 @@
                 font-weight: 600;
             }
 
+            .ph-water-date-truncate {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                min-width: 0;
+                flex: 1 1 auto;
+                text-align: right;
+            }
+
             .ph-overdue {
                 margin-left: auto;
                 color: #ef4444;

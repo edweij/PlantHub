@@ -303,8 +303,9 @@ a:hover {
 /* Två kolumner på större skärmar */
 @media (min-width: 900px) {
   .ph-card-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: block;
+    column-count: 2;
+    column-gap: 1rem;
     gap: 1rem;
   }
 }
@@ -316,6 +317,9 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 0.75rem;
   /* Äldre list-vy (behåll för bakåtkompatibilitet) */
 }
 .ph-card .ph-card-header {
@@ -512,6 +516,14 @@ a:hover {
 }
 .ph-plant-card .ph-plant-body .ph-plant-water .ph-water-date {
   font-weight: 600;
+}
+.ph-plant-card .ph-plant-body .ph-plant-water .ph-water-date-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: right;
 }
 .ph-plant-card .ph-plant-body .ph-plant-water .ph-overdue {
   margin-left: auto;

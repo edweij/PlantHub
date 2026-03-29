@@ -16,17 +16,41 @@ else if (_groupsWithPlants.Count == 0 && _sensorPlants.Count == 0)
 }
 else
 {
+    @if (_sensorPlants.Count > 0)
+    {
+        <div class="ph-card-list">
+            <div class="ph-card">
+                <div class="ph-card-header">
+                    <span class="ph-card-title">Sensor monitored plants</span>
+                    <span class="ph-card-subtitle">Soil moisture alerts</span>
+                </div>
+
+                <div class="ph-plant-grid">
+                    @foreach (var plant in _sensorPlants.OrderBy(p => p.Name))
+                    {
+                        <PlantCard Plant="plant"
+                                   AreaName="@(ResolveAreaName(plant.AreaId))"
+                                   StatusBadge="@(GetStatusBadge(plant))"
+                                   OnClick="@(p => OpenDetails(p))"
+                                   OnEdit="@(p => HandleEditPlantClick(p))"
+                                   OnWaterNow="@(p => MarkWateredNow(p))"
+                                   OnEditImage="OpenImageModal"
+                                   OnDelete="@(p => RequestDelete(p))" />
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
     @if (_groupsWithPlants.Count > 0)
     {
         <div class="ph-card-list">
-            @foreach (var group in _groupsWithPlants)
+            @foreach (var group in GetDisplayGroups())
             {
                 <div class="ph-card">
                     <div class="ph-card-header">
                         <span class="ph-card-title">@group.Name</span>
-                        <span class="ph-card-subtitle">
-                            @GetIntervalLabel(group)
-                        </span>
+                        <span class="ph-card-subtitle">@GetIntervalLabel(group)</span>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(group.Description))
@@ -106,32 +130,6 @@ else
         </div>
     }
 
-    @if (_sensorPlants.Count > 0)
-    {
-        <div class="ph-card-list">
-            <div class="ph-card">
-                <div class="ph-card-header">
-                    <span class="ph-card-title">Sensor monitored plants</span>
-                    <span class="ph-card-subtitle">Soil moisture alerts</span>
-                </div>
-
-                <div class="ph-plant-grid">
-                    @foreach (var plant in _sensorPlants.OrderBy(p => p.Name))
-                    {
-                        <PlantCard Plant="plant"
-                                   AreaName="@(ResolveAreaName(plant.AreaId))"
-                                   StatusBadge="@(GetStatusBadge(plant))"
-                                   OnClick="@(p => OpenDetails(p))"
-                                   OnEdit="@(p => HandleEditPlantClick(p))"
-                                   OnWaterNow="@(p => MarkWateredNow(p))"
-                                   OnEditImage="OpenImageModal"
-                                   OnDelete="@(p => RequestDelete(p))" />
-                    }
-                </div>
-            </div>
-        </div>
-    }
-
     <PhConfirmModal IsOpen="_waterGroupConfirmOpen"
                     IsOpenChanged="@(v => _waterGroupConfirmOpen = v)"
                     Title="Water all plants"
@@ -180,15 +178,14 @@ else
     private List<Plant> _sensorPlants = new();
     private bool _deleteOpen;
     private Plant? _pendingDelete;
-
     private bool _showEditWateringGroupModal;
     private WateringGroup? _editingGroup;
-
     private bool _showEditPlantModal;
     private Plant? _editingPlant;
-
     private bool _waterGroupConfirmOpen;
     private WateringGroup? _pendingWaterGroup;
+    private Plant? _selectedPlantForImage;
+    private bool _isImageModalOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -303,6 +300,12 @@ else
             .ToList();
     }
 
+    private IEnumerable<WateringGroup> GetDisplayGroups()
+        => _groupsWithPlants
+            .OrderByDescending(g => g.Plants?.Count ?? 0)
+            .ThenByDescending(g => g.Description?.Length ?? 0)
+            .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase);
+
     private void RequestDelete(Plant p)
     {
         _pendingDelete = p;
@@ -395,9 +398,6 @@ else
         _pendingWaterGroup = null;
         _waterGroupConfirmOpen = false;
     }
-
-    private Plant? _selectedPlantForImage;
-    private bool _isImageModalOpen;
 
     private void OpenImageModal(Plant plant)
     {
