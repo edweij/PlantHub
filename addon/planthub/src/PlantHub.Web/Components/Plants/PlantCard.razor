@@ -51,7 +51,22 @@
             }
         </div>
 
-        @if (Plant.GetLastWatered() is not null)
+        @if (Plant.Mode == WateringMode.Sensor)
+        {
+            <div class="ph-plant-water">
+                <span class="ph-water-label">Moisture sensor</span>
+                <span class="ph-water-date">@Plant.SensorEntityId</span>
+            </div>
+
+            @if (Plant.MoistureLowPercent is not null)
+            {
+                <div class="ph-plant-water">
+                    <span class="ph-water-label">Notify below</span>
+                    <span class="ph-water-date">@($"{Plant.MoistureLowPercent:0.#}%")</span>
+                </div>
+            }
+        }
+        else if (Plant.GetLastWatered() is not null)
         {
             <div class="ph-plant-water">
                 <span class="ph-water-label">Last watered</span>
@@ -60,23 +75,26 @@
             </div>
         }
 
-        <div class="ph-plant-water">
-            <span class="ph-water-label">Next watering</span>
+        @if (Plant.Mode != WateringMode.Sensor)
+        {
+            <div class="ph-plant-water">
+                <span class="ph-water-label">Next watering</span>
 
-            @if (Plant.GetLastWatered() is null)
-            {
-                <span class="ph-water-date">Never watered</span>
-            }
-            else
-            {
-                <span class="ph-water-date">@Plant.ComputeNextWaterDate()?.ToString("yyyy-MM-dd")</span>
-
-                @if (Plant.GetDaysOverdue() is not null && Plant.GetDaysOverdue() > 0)
+                @if (Plant.GetLastWatered() is null)
                 {
-                    <span class="ph-overdue">+@Plant.GetDaysOverdue() d</span>
+                    <span class="ph-water-date">Never watered</span>
                 }
-            }
-        </div>
+                else
+                {
+                    <span class="ph-water-date">@Plant.ComputeNextWaterDate()?.ToString("yyyy-MM-dd")</span>
+
+                    @if (Plant.GetDaysOverdue() is not null && Plant.GetDaysOverdue() > 0)
+                    {
+                        <span class="ph-overdue">+@Plant.GetDaysOverdue() d</span>
+                    }
+                }
+            </div>
+        }
 
         
     </div>
@@ -94,7 +112,7 @@
             </PhTooltip>
         }
 
-        @if (Plant.GetLastWatered() is null && OnCheckNow.HasDelegate)
+        @if (Plant.Mode != WateringMode.Sensor && Plant.GetLastWatered() is null && OnCheckNow.HasDelegate)
         {
             <PhTooltip Text="Check watering now">
                 <button type="button"

@@ -25,12 +25,17 @@
     </section>
 
     <section class="ph-content">
-        <PlantGroupsList Areas="_areas" @ref="_plantGroupsListRef" OnDeleteGroup="RequestDeleteGroup" OnAddPlant="HandleAddPlantForGroup" />
+        <PlantGroupsList Areas="_areas"
+                         SoilMoistureSensors="_soilMoistureSensors"
+                         @ref="_plantGroupsListRef"
+                         OnDeleteGroup="RequestDeleteGroup"
+                         OnAddPlant="HandleAddPlantForGroup" />
     </section>
 </main>
 
 <AddEditPlantModal IsOpen="_showAddPlantModal"
                    Areas="_areas"
+                   SoilMoistureSensors="_soilMoistureSensors"
                    WateringGroups="_wateringGroups"
                    DefaultWateringGroupId="_prefillGroupForNewPlant?.Id"
                    OnSave="HandleAddPlantSave"
@@ -88,6 +93,7 @@
     private bool _showAboutModal;
     private bool _sendingTestNotification;
     private IReadOnlyList<HaAreaLite> _areas = Array.Empty<HaAreaLite>();
+    private IReadOnlyList<HaEntityStateLite> _soilMoistureSensors = Array.Empty<HaEntityStateLite>();
     private IReadOnlyList<WateringGroup> _wateringGroups = Array.Empty<WateringGroup>();
     private string _installedVersion = "unknown";
 
@@ -104,6 +110,7 @@
         if (HaClient.IsEnabled)
         {
             _areas = await HaClient.GetAreasAsync();
+            _soilMoistureSensors = await HaClient.GetSoilMoistureSensorsAsync();
         }
 
         await LoadWateringGroupsAsync();

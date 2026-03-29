@@ -1,4 +1,4 @@
-﻿@using Microsoft.EntityFrameworkCore
+@using Microsoft.EntityFrameworkCore
 @using PlantHub.Web.Domain
 @using PlantHub.Web.Infrastructure
 
@@ -10,115 +10,136 @@
 {
     <p><em>Loading plants...</em></p>
 }
-else if (_groupsWithPlants.Count == 0)
+else if (_groupsWithPlants.Count == 0 && _sensorPlants.Count == 0)
 {
     <p>No irrigation groups or plants were found.</p>
 }
 else
 {
-    <div class="ph-card-list">
-        @foreach (var group in _groupsWithPlants)
-        {
-            <div class="ph-card">
-                <div class="ph-card-header">
-                    <span class="ph-card-title">@group.Name</span>
-                    <span class="ph-card-subtitle">
-                        @GetIntervalLabel(group)
-                    </span>
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(group.Description))
-                {
-                    <p class="ph-card-description">@group.Description</p>
-                }
-
-                @if (group.Plants is { Count: > 0 })
-                {
-                    <div class="ph-plant-grid">
-                        @foreach (var plant in group.Plants.OrderBy(p => p.Name))
-                        {
-                            <PlantCard Plant="plant"
-                                       AreaName="@(ResolveAreaName(plant.AreaId))"
-                                       WateringGroupName="@(plant.WateringGroup?.Name)"
-                                       StatusBadge="@(GetStatusBadge(plant))"
-                                       OnClick="@(p => OpenDetails(p))"
-                                       OnEdit="@(p => HandleEditPlantClick(p))"
-                                       OnWaterNow="@(p => MarkWateredNow(p))"
-                                       OnCheckNow="HandleCheckNowForPlant"
-                                       OnEditImage="OpenImageModal"
-                                       OnDelete="@(p => RequestDelete(p))" />
-                        }
+    @if (_groupsWithPlants.Count > 0)
+    {
+        <div class="ph-card-list">
+            @foreach (var group in _groupsWithPlants)
+            {
+                <div class="ph-card">
+                    <div class="ph-card-header">
+                        <span class="ph-card-title">@group.Name</span>
+                        <span class="ph-card-subtitle">
+                            @GetIntervalLabel(group)
+                        </span>
                     </div>
-                }
-                else
-                {
-                    <p class="ph-empty-hint">No plants yet in this group.</p>
-                }
 
-
-
-
-                <div class="ph-card-footer">
+                    @if (!string.IsNullOrWhiteSpace(group.Description))
+                    {
+                        <p class="ph-card-description">@group.Description</p>
+                    }
 
                     @if (group.Plants is { Count: > 0 })
                     {
-                        <PhTooltip Text="Water all plants in this group now">
+                        <div class="ph-plant-grid">
+                            @foreach (var plant in group.Plants.OrderBy(p => p.Name))
+                            {
+                                <PlantCard Plant="plant"
+                                           AreaName="@(ResolveAreaName(plant.AreaId))"
+                                           WateringGroupName="@(plant.WateringGroup?.Name)"
+                                           StatusBadge="@(GetStatusBadge(plant))"
+                                           OnClick="@(p => OpenDetails(p))"
+                                           OnEdit="@(p => HandleEditPlantClick(p))"
+                                           OnWaterNow="@(p => MarkWateredNow(p))"
+                                           OnCheckNow="HandleCheckNowForPlant"
+                                           OnEditImage="OpenImageModal"
+                                           OnDelete="@(p => RequestDelete(p))" />
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="ph-empty-hint">No plants yet in this group.</p>
+                    }
+
+                    <div class="ph-card-footer">
+                        @if (group.Plants is { Count: > 0 })
+                        {
+                            <PhTooltip Text="Water all plants in this group now">
+                                <button type="button"
+                                        class="ph-icon-btn ph-icon-btn-water"
+                                        @onclick:stopPropagation="true"
+                                        @onclick="() => RequestWaterGroup(group)">
+                                    <span class="ph-emoji" aria-hidden="true">💦</span>
+                                </button>
+                            </PhTooltip>
+                        }
+
+                        @if (OnAddPlant.HasDelegate)
+                        {
+                            <PhTooltip Text="Add plant to this group">
+                                <button type="button"
+                                        class="ph-icon-btn"
+                                        @onclick="() => AddPlantToGroup(group)">
+                                    🌱
+                                </button>
+                            </PhTooltip>
+                        }
+
+                        <PhTooltip Text="Edit watering group settings">
                             <button type="button"
-                                    class="ph-icon-btn ph-icon-btn-water"
+                                    class="ph-icon-btn ph-icon-btn-edit"
                                     @onclick:stopPropagation="true"
-                                    @onclick="() => RequestWaterGroup(group)">
-                                <span class="ph-emoji" aria-hidden="true">💦</span>
+                                    @onclick="() => HandleEditWateringGroupClick(group)">
+                                <span class="ph-emoji" aria-hidden="true">🛠️</span>
                             </button>
                         </PhTooltip>
-                    }
 
-                    @if (OnAddPlant.HasDelegate)
-                    {
-                        <PhTooltip Text="Add plant to this group">
-                            <button type="button"
-                                    class="ph-icon-btn"
-                                    @onclick="() => AddPlantToGroup(group)">
-                                🌱
-                            </button>
-                        </PhTooltip>
-                    }
+                        @if (group.Plants is { Count: 0 })
+                        {
+                            <PhTooltip Text="Delete group">
+                                <button type="button"
+                                        class="ph-icon-btn ph-icon-btn-delete"
+                                        @onclick="() => RequestDeleteGroupAsync(group)">
+                                    🗑️
+                                </button>
+                            </PhTooltip>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
 
-                    <PhTooltip Text="Edit watering group settings">
-                        <button type="button"
-                                class="ph-icon-btn ph-icon-btn-edit"
-                                @onclick:stopPropagation="true"
-                                @onclick="() => HandleEditWateringGroupClick(group)">
-                            <span class="ph-emoji" aria-hidden="true">🛠️</span>
-                        </button>
-                    </PhTooltip>
-
-
-                    @if (group.Plants is { Count: 0 })
-                    {
-                        <PhTooltip Text="Delete group">
-                            <button type="button"
-                                    class="ph-icon-btn ph-icon-btn-delete"
-                                    @onclick="() => RequestDeleteGroupAsync(group)">
-                                🗑️
-                            </button>
-                        </PhTooltip>
-                    }
+    @if (_sensorPlants.Count > 0)
+    {
+        <div class="ph-card-list">
+            <div class="ph-card">
+                <div class="ph-card-header">
+                    <span class="ph-card-title">Sensor monitored plants</span>
+                    <span class="ph-card-subtitle">Soil moisture alerts</span>
                 </div>
 
+                <div class="ph-plant-grid">
+                    @foreach (var plant in _sensorPlants.OrderBy(p => p.Name))
+                    {
+                        <PlantCard Plant="plant"
+                                   AreaName="@(ResolveAreaName(plant.AreaId))"
+                                   StatusBadge="@(GetStatusBadge(plant))"
+                                   OnClick="@(p => OpenDetails(p))"
+                                   OnEdit="@(p => HandleEditPlantClick(p))"
+                                   OnWaterNow="@(p => MarkWateredNow(p))"
+                                   OnEditImage="OpenImageModal"
+                                   OnDelete="@(p => RequestDelete(p))" />
+                    }
+                </div>
             </div>
-        }
-    </div>
+        </div>
+    }
 
     <PhConfirmModal IsOpen="_waterGroupConfirmOpen"
                     IsOpenChanged="@(v => _waterGroupConfirmOpen = v)"
                     Title="Water all plants"
-                    Message="@(_pendingWaterGroup is null
-                                        ? null
-                                        : $"Water all plants in '{_pendingWaterGroup.Name}' now?")"
-                CancelText="Cancel"
-                ConfirmText="Water"
-                OnConfirm="ConfirmWaterGroupAsync"
-                OnCancel="CancelWaterGroup" />
+                    Message="@(_pendingWaterGroup is null ? null : $"Water all plants in '{_pendingWaterGroup.Name}' now?")"
+                    CancelText="Cancel"
+                    ConfirmText="Water"
+                    OnConfirm="ConfirmWaterGroupAsync"
+                    OnCancel="CancelWaterGroup" />
 
     <PhConfirmModal IsOpen="_deleteOpen"
                     IsOpenChanged="@(v => _deleteOpen = v)"
@@ -130,12 +151,13 @@ else
                     OnCancel="CancelDelete" />
 
     <AddEditWateringGroupModal IsOpen="_showEditWateringGroupModal"
-                           IsOpenChanged="OnEditWateringGroupModalChanged"
-                           ExistingGroup="_editingGroup"
-                           OnSave="HandleEditWateringGroupSave" />
+                               IsOpenChanged="OnEditWateringGroupModalChanged"
+                               ExistingGroup="_editingGroup"
+                               OnSave="HandleEditWateringGroupSave" />
 
     <AddEditPlantModal IsOpen="_showEditPlantModal"
                        Areas="Areas"
+                       SoilMoistureSensors="SoilMoistureSensors"
                        WateringGroups="_groupsWithPlants"
                        ExistingPlant="_editingPlant"
                        OnSave="HandleEditPlantSave"
@@ -151,9 +173,11 @@ else
     [Inject] PhToastService Toasts { get; set; } = default!;
     [Parameter] public EventCallback<WateringGroup> OnAddPlant { get; set; }
     [Parameter] public IEnumerable<HaAreaLite> Areas { get; set; } = Enumerable.Empty<HaAreaLite>();
+    [Parameter] public IEnumerable<HaEntityStateLite> SoilMoistureSensors { get; set; } = Enumerable.Empty<HaEntityStateLite>();
     [Parameter] public EventCallback<WateringGroup> OnDeleteGroup { get; set; }
 
     private List<WateringGroup> _groupsWithPlants = new();
+    private List<Plant> _sensorPlants = new();
     private bool _deleteOpen;
     private Plant? _pendingDelete;
 
@@ -166,7 +190,6 @@ else
     private bool _waterGroupConfirmOpen;
     private WateringGroup? _pendingWaterGroup;
 
-
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
@@ -175,12 +198,9 @@ else
     private async Task AddPlantToGroup(WateringGroup group)
     {
         if (OnAddPlant.HasDelegate)
-        {
             await OnAddPlant.InvokeAsync(group);
-        }
     }
 
-    // Handle "Check now" button click for a plant
     private async Task HandleCheckNowForPlant(Plant plant)
     {
         using var scope = ScopeFactory.CreateScope();
@@ -189,7 +209,6 @@ else
         Toasts.Show("Watering check completed. Notifications sent if needed.", PhToastLevel.Info);
     }
 
-    // Handle Edit plant modal open/close changes
     private Task HandleEditPlantClick(Plant plant)
     {
         _editingPlant = plant;
@@ -197,25 +216,20 @@ else
         return Task.CompletedTask;
     }
 
-    // Handle edit plant modal open/close changes
     private void OnEditPlantModalChanged(bool value)
     {
         _showEditPlantModal = value;
 
         if (!value)
-        {
             _editingPlant = null;
-        }
     }
 
-    // Handle save from the edit plant modal
     private async Task HandleEditPlantSave(CreatePlantModel model)
     {
         if (_editingPlant is null)
             return;
 
         var changes = model.ToEntity();
-        // 🔹 EDIT – uppdatera befintlig entity
         _editingPlant.Name = changes.Name;
         _editingPlant.LatinName = changes.LatinName;
         _editingPlant.AreaId = changes.AreaId;
@@ -223,6 +237,9 @@ else
         _editingPlant.PotVolumeMl = changes.PotVolumeMl;
         _editingPlant.Notes = changes.Notes;
         _editingPlant.Mode = changes.Mode;
+        _editingPlant.SensorEntityId = changes.SensorEntityId;
+        _editingPlant.MoistureLowPercent = changes.MoistureLowPercent;
+        _editingPlant.MoistureHighPercent = changes.MoistureHighPercent;
 
         await _plants.UpdateAsync(_editingPlant);
         Toasts.Show($"Plant {_editingPlant.Name} updated", PhToastLevel.Success);
@@ -233,32 +250,26 @@ else
         await ReloadAsync();
     }
 
-    // Handle click on "edit" button for a watering group
     private Task HandleEditWateringGroupClick(WateringGroup group)
     {
         _editingGroup = group;
-        _showEditWateringGroupModal = true;        
+        _showEditWateringGroupModal = true;
         return Task.CompletedTask;
     }
 
-    // Handle modal open/close changes
     private void OnEditWateringGroupModalChanged(bool value)
     {
         _showEditWateringGroupModal = value;
 
         if (!value)
-        {
             _editingGroup = null;
-        }
     }
 
-    // Handle save from the edit watering group modal
     private async Task HandleEditWateringGroupSave(CreateWateringGroupModel model)
     {
         if (_editingGroup is null)
             return;
 
-        // Uppdatera entity med värden från formuläret
         _editingGroup.Name = model.Name;
         _editingGroup.Description = model.Description;
         _editingGroup.IntervalDaysSummer = model.IntervalDaysSummer;
@@ -271,7 +282,6 @@ else
         await _groups.UpdateAsync(_editingGroup);
         Toasts.Show($"Watering group {_editingGroup.Name} updated", PhToastLevel.Success);
 
-        // Stäng modalen
         _showEditWateringGroupModal = false;
         _editingGroup = null;
 
@@ -281,14 +291,16 @@ else
     public async Task RequestDeleteGroupAsync(WateringGroup group)
     {
         if (OnDeleteGroup.HasDelegate)
-        {
             await OnDeleteGroup.InvokeAsync(group);
-        }
     }
 
     public async Task ReloadAsync()
     {
         _groupsWithPlants = (await _groups.GetAllWithPlantsAsync()).ToList();
+        _sensorPlants = (await _plants.ListAsync())
+            .Where(p => p.Mode == WateringMode.Sensor)
+            .OrderBy(p => p.Name)
+            .ToList();
     }
 
     private void RequestDelete(Plant p)
@@ -305,11 +317,9 @@ else
 
         var img = _pendingDelete.ImageUrl;
 
-        // 1. Delete plant from DB (authoritative source)
         await _plants.DeleteAsync(_pendingDelete);
         Toasts.Show($"Plant {_pendingDelete.Name} was deleted", PhToastLevel.Warning);
 
-        // 2. Delete image file (best effort)
         if (!string.IsNullOrWhiteSpace(img))
         {
             try
@@ -322,7 +332,6 @@ else
             }
         }
 
-        // 3. Reset state and reload UI
         _pendingDelete = null;
         await ReloadAsync();
         StateHasChanged();
@@ -335,24 +344,22 @@ else
     }
 
     private static string GetIntervalLabel(WateringGroup g)
-    {
-        // Short, human-friendly label for the card header
-        return $"Summer: {g.IntervalDaysSummer} d • Winter: {g.IntervalDaysWinter} d";
-    }
+        => $"Summer: {g.IntervalDaysSummer} d • Winter: {g.IntervalDaysWinter} d";
 
     private string? ResolveAreaName(string? areaId) => Areas.SingleOrDefault(a => a.Id == areaId)?.Name ?? areaId;
-       
 
     private string? GetStatusBadge(Plant p)
     {
+        if (p.Mode == WateringMode.Sensor)
+            return "Sensor";
+
         var overdue = p.GetDaysOverdue();
         if (overdue is > 0) return "Needs water";
         return "OK";
     }
 
-    // Wire up your UI actions
-    private void OpenDetails(Plant p) { /* navigate or open side panel */ }
-    
+    private void OpenDetails(Plant p) { }
+
     private async Task MarkWateredNow(Plant p)
     {
         await _plants.MarkWateredAsync(p.Id);
@@ -389,15 +396,6 @@ else
         _waterGroupConfirmOpen = false;
     }
 
-    private async Task WaterGroupNow(WateringGroup group)
-    {
-        await _plants.MarkWateredGroupAsync(group.Id);
-
-        await ReloadAsync();
-        StateHasChanged();
-    }
-
-    // Image editing
     private Plant? _selectedPlantForImage;
     private bool _isImageModalOpen;
 
@@ -412,5 +410,4 @@ else
         _isImageModalOpen = false;
         _selectedPlantForImage = null;
     }
-
 }

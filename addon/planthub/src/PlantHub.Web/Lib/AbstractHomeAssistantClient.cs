@@ -10,6 +10,8 @@ public interface IHomeAssistantClient
 {
     bool IsEnabled { get; }
     Task<IReadOnlyList<HaAreaLite>> GetAreasAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<HaEntityStateLite>> GetSoilMoistureSensorsAsync(CancellationToken ct = default);
+    Task<HaEntityStateLite?> GetEntityStateAsync(string entityId, CancellationToken ct = default);
 
     Task CreatePersistentNotificationAsync(
         string title,
@@ -39,6 +41,8 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
     }
 
     public abstract Task<IReadOnlyList<HaAreaLite>> GetAreasAsync(CancellationToken ct = default);
+    public abstract Task<IReadOnlyList<HaEntityStateLite>> GetSoilMoistureSensorsAsync(CancellationToken ct = default);
+    public abstract Task<HaEntityStateLite?> GetEntityStateAsync(string entityId, CancellationToken ct = default);
 
     public abstract Task CreatePersistentNotificationAsync(string title, string message, CancellationToken ct = default);
 
@@ -126,6 +130,29 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
         resp.EnsureSuccessStatusCode();
     }
 
+    protected async Task<JsonElement?> GetJsonAsync(string relativePath, CancellationToken ct)
+    {
+        if (!IsEnabled || BaseUri is null || Token is null)
+            return null;
+
+        var targetUri = new Uri(BaseUri, relativePath);
+        Console.WriteLine($"[PlantHub] GET {targetUri}");
+
+        using var http = new HttpClient { BaseAddress = BaseUri };
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+
+        using var resp = await http.GetAsync(relativePath, ct);
+        var responseBody = await resp.Content.ReadAsStringAsync(ct);
+        Console.WriteLine($"[PlantHub] GET {targetUri} -> HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}; body={responseBody}");
+
+        if (!resp.IsSuccessStatusCode)
+            return null;
+
+        using var doc = JsonDocument.Parse(responseBody);
+        return doc.RootElement.Clone();
+    }
+
     protected static List<HaAreaLite> ParseAreaList(JsonElement result)
     {
         var list = new List<HaAreaLite>();
@@ -139,5 +166,73 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
             list.Add(new HaAreaLite(id, name, floor));
         }
         return list;
+    }
+
+    protected static IReadOnlyList<HaEntityStateLite> ParseSoilMoistureSensors(JsonElement result)
+    {
+        var list = new List<HaEntityStateLite>();
+
+        foreach (var el in result.EnumerateArray())
+        {
+            if (!TryParseEntityState(el, out var entity))
+                continue;
+
+            if (IsSoilMoistureSensor(entity))
+                list.Add(entity);
+        }
+
+        return list
+            .OrderBy(x => x.FriendlyName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    protected static bool TryParseEntityState(JsonElement el, out HaEntityStateLite entity)
+    {
+        entity = default!;
+
+        if (!el.TryGetProperty("entity_id", out var entityIdEl))
+            return false;
+
+        var entityId = entityIdEl.GetString();
+        if (string.IsNullOrWhiteSpace(entityId))
+            return false;
+
+        var state = el.TryGetProperty("state", out var stateEl)
+            ? stateEl.GetString() ?? string.Empty
+            : string.Empty;
+
+        string? friendlyName = null;
+        string? unitOfMeasurement = null;
+        string? deviceClass = null;
+
+        if (el.TryGetProperty("attributes", out var attrs) && attrs.ValueKind == JsonValueKind.Object)
+        {
+            if (attrs.TryGetProperty("friendly_name", out var nameEl))
+                friendlyName = nameEl.GetString();
+
+            if (attrs.TryGetProperty("unit_of_measurement", out var unitEl))
+                unitOfMeasurement = unitEl.GetString();
+
+            if (attrs.TryGetProperty("device_class", out var classEl))
+                deviceClass = classEl.GetString();
+        }
+
+        entity = new HaEntityStateLite(
+            entityId,
+            friendlyName ?? entityId,
+            state,
+            unitOfMeasurement,
+            deviceClass);
+
+        return true;
+    }
+
+    protected static bool IsSoilMoistureSensor(HaEntityStateLite entity)
+    {
+        if (!entity.EntityId.StartsWith("sensor.", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var haystack = $"{entity.EntityId} {entity.FriendlyName}".ToLowerInvariant();
+        return haystack.Contains("soil_moisture") || haystack.Contains("soil moisture");
     }
 }

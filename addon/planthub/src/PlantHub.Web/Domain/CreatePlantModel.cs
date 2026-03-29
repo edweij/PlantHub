@@ -2,7 +2,7 @@
 
 namespace PlantHub.Web.Domain;
 
-public class CreatePlantModel
+public class CreatePlantModel : IValidatableObject
 {
     [Required, MaxLength(100)]
     public string Name { get; set; } = string.Empty;
@@ -15,7 +15,6 @@ public class CreatePlantModel
     [Required]
     public WateringMode Mode { get; set; } = WateringMode.Schedule;
 
-    [Required]
     public int? WateringGroupId { get; set; }
 
     [Range(1, 100_000)]
@@ -36,6 +35,51 @@ public class CreatePlantModel
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (Mode == WateringMode.Schedule && !WateringGroupId.HasValue)
+        {
+            yield return new ValidationResult(
+                "Select a watering group for schedule-based plants.",
+                new[] { nameof(WateringGroupId) });
+        }
+
+        if (Mode == WateringMode.Sensor)
+        {
+            if (string.IsNullOrWhiteSpace(SensorEntityId))
+            {
+                yield return new ValidationResult(
+                    "Select a soil moisture sensor.",
+                    new[] { nameof(SensorEntityId) });
+            }
+
+            if (!MoistureLowPercent.HasValue)
+            {
+                yield return new ValidationResult(
+                    "Enter the moisture percentage that should trigger a notification.",
+                    new[] { nameof(MoistureLowPercent) });
+            }
+        }
+
+        if (MoistureLowPercent.HasValue && (MoistureLowPercent < 0 || MoistureLowPercent > 100))
+        {
+            yield return new ValidationResult(
+                "Low moisture threshold must be between 0 and 100.",
+                new[] { nameof(MoistureLowPercent) });
+        }
+
+        if (MoistureHighPercent.HasValue && (MoistureHighPercent < 0 || MoistureHighPercent > 100))
+        {
+            yield return new ValidationResult(
+                "High moisture threshold must be between 0 and 100.",
+                new[] { nameof(MoistureHighPercent) });
+        }
+
+        if (MoistureLowPercent.HasValue && MoistureHighPercent.HasValue && MoistureHighPercent <= MoistureLowPercent)
+        {
+            yield return new ValidationResult(
+                "Recovery threshold must be higher than the low moisture threshold.",
+                new[] { nameof(MoistureLowPercent), nameof(MoistureHighPercent) });
+        }
+
         // Tillåt allt tomt (ingen pottinfo), ELLER en komplett specifikation.
         var hasVol = PotVolumeMl.HasValue;
         var hasDims = PotDiameterCm.HasValue || PotHeightCm.HasValue;

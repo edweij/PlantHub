@@ -7,6 +7,12 @@ public sealed class DisabledHomeAssistantClient : IHomeAssistantClient
     public Task<IReadOnlyList<HaAreaLite>> GetAreasAsync(CancellationToken ct = default)
         => Task.FromResult((IReadOnlyList<HaAreaLite>)Array.Empty<HaAreaLite>());
 
+    public Task<IReadOnlyList<HaEntityStateLite>> GetSoilMoistureSensorsAsync(CancellationToken ct = default)
+        => Task.FromResult((IReadOnlyList<HaEntityStateLite>)Array.Empty<HaEntityStateLite>());
+
+    public Task<HaEntityStateLite?> GetEntityStateAsync(string entityId, CancellationToken ct = default)
+        => Task.FromResult<HaEntityStateLite?>(null);
+
     public Task CreatePersistentNotificationAsync(
         string title,
         string message,

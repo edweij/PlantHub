@@ -1,4 +1,4 @@
-﻿@using PlantHub.Web.Domain
+@using PlantHub.Web.Domain
 @using PlantHub.Web.Lib
 @using PlantHub.Web.Components.Shared
 @using Microsoft.AspNetCore.Components.Forms
@@ -18,17 +18,14 @@
             <EditForm EditContext="_editContext" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
                 <div class="ph-modal-body">
-                    <!-- Name -->
                     <PhTextField Label="Name"
                                  Placeholder="e.g. Ficus in living room window"
                                  @bind-Value="_model.Name" />
 
-                    <!-- Latin name -->
                     <PhTextField Label="Latin name"
                                  Placeholder="Ficus lyrata"
                                  @bind-Value="_model.LatinName" />
 
-                    <!-- Area + Watering group -->
                     <div class="ph-grid-2">
                         <PhSelectField TValue="string"
                                        Label="Area"
@@ -36,14 +33,50 @@
                                        Items="_areaOptions"
                                        @bind-Value="_model.AreaId" />
 
+                        <PhSelectField TValue="WateringMode"
+                                       Label="Monitoring mode"
+                                       Items="_modeOptions"
+                                       @bind-Value="_model.Mode" />
+                    </div>
+
+                    @if (_model.Mode == WateringMode.Schedule)
+                    {
                         <PhSelectField TValue="int?"
                                        Label="Watering group"
                                        Placeholder="Select group"
                                        Items="_wgOptions"
                                        @bind-Value="_model.WateringGroupId" />
-                    </div>
+                    }
 
-                    <!-- Pot size -->
+                    @if (_model.Mode == WateringMode.Sensor)
+                    {
+                        <div class="ph-field">
+                            <PhSelectField TValue="string"
+                                           Label="Soil moisture sensor"
+                                           Placeholder="Select sensor"
+                                           Items="_sensorOptions"
+                                           @bind-Value="_model.SensorEntityId" />
+                            @if (_sensorOptions.Count == 0)
+                            {
+                                <div class="ph-hint">
+                                    No soil moisture sensors were found in Home Assistant yet.
+                                </div>
+                            }
+                        </div>
+
+                        <div class="ph-grid-2">
+                            <div class="ph-field">
+                                <label class="ph-label">Notify below (%)</label>
+                                <InputNumber class="ph-input" @bind-Value="_model.MoistureLowPercent" />
+                            </div>
+                            <div class="ph-field">
+                                <label class="ph-label">Reset above (%)</label>
+                                <InputNumber class="ph-input" @bind-Value="_model.MoistureHighPercent" />
+                                <div class="ph-hint">Optional. If empty, PlantHub uses low threshold + 5%.</div>
+                            </div>
+                        </div>
+                    }
+
                     <div class="ph-field">
                         <label class="ph-label">Pot size</label>
                         <div class="ph-grid-3">
@@ -68,7 +101,6 @@
                         </div>
                     </div>
 
-                    <!-- Notes -->
                     <div class="ph-field">
                         <label class="ph-label">Notes</label>
                         <textarea class="ph-textarea"
@@ -99,16 +131,16 @@
     [Parameter] public int? DefaultWateringGroupId { get; set; }
     [Parameter] public IEnumerable<HaAreaLite> Areas { get; set; } = Enumerable.Empty<HaAreaLite>();
     [Parameter] public IEnumerable<WateringGroup> WateringGroups { get; set; } = Enumerable.Empty<WateringGroup>();
+    [Parameter] public IEnumerable<HaEntityStateLite> SoilMoistureSensors { get; set; } = Enumerable.Empty<HaEntityStateLite>();
     [Parameter] public EventCallback<CreatePlantModel> OnSave { get; set; }
-
-
-    // 🔹 Ny: befintlig planta vid edit (null = add)
     [Parameter] public Plant? ExistingPlant { get; set; }
 
     private CreatePlantModel _model = new();
     private EditContext? _editContext;
     private List<PhSelectField<string>.SelectItem> _areaOptions = new();
     private List<PhSelectField<int?>.SelectItem> _wgOptions = new();
+    private List<PhSelectField<WateringMode>.SelectItem> _modeOptions = new();
+    private List<PhSelectField<string>.SelectItem> _sensorOptions = new();
     private bool _wasOpen;
 
     private bool IsEditMode => ExistingPlant is not null;
@@ -118,7 +150,7 @@
     protected override void OnParametersSet()
     {
         var now = DateTime.UtcNow;
-                
+
         _areaOptions = Areas
             .OrderBy(a => a.Name)
             .Select(a => new PhSelectField<string>.SelectItem(a.Id, a.Name))
@@ -139,7 +171,22 @@
             })
             .ToList();
 
-        // 🔹 När modalen just öppnas: initiera modellen
+        _modeOptions = new()
+        {
+            new(WateringMode.Schedule, "Schedule"),
+            new(WateringMode.Sensor, "Sensor"),
+            new(WateringMode.Manual, "Manual")
+        };
+
+        _sensorOptions = SoilMoistureSensors
+            .OrderBy(s => s.FriendlyName)
+            .Select(s =>
+            {
+                var suffix = string.IsNullOrWhiteSpace(s.State) ? string.Empty : $" ({s.State}{s.UnitOfMeasurement})";
+                return new PhSelectField<string>.SelectItem(s.EntityId, $"{s.FriendlyName}{suffix}");
+            })
+            .ToList();
+
         if (IsOpen && !_wasOpen)
         {
             if (IsEditMode && ExistingPlant is not null)
@@ -151,9 +198,7 @@
                 _model = CreateEmptyModelForAdd();
 
                 if (DefaultWateringGroupId is not null)
-                {
                     _model.WateringGroupId = DefaultWateringGroupId;
-                }
             }
 
             _editContext = new EditContext(_model);
@@ -165,7 +210,6 @@
     private CreatePlantModel CreateEmptyModelForAdd()
         => new()
         {
-            // tills sensor-UI finns
             Mode = WateringMode.Schedule
         };
 
@@ -176,15 +220,16 @@
             LatinName = p.LatinName,
             AreaId = p.AreaId,
             WateringGroupId = p.WateringGroupId,
-            PotVolumeMl = p.PotVolumeMl,            
+            PotVolumeMl = p.PotVolumeMl,
             Notes = p.Notes,
-            Mode = p.Mode
+            Mode = p.Mode,
+            SensorEntityId = p.SensorEntityId,
+            MoistureLowPercent = p.MoistureLowPercent,
+            MoistureHighPercent = p.MoistureHighPercent
         };
 
     private async Task HandleValidSubmit()
     {
-        // Viktigt: vi sätter inte Mode här längre – det kommer från CreateEmptyModelForAdd eller MapFromEntity
-
         if (OnSave.HasDelegate)
             await OnSave.InvokeAsync(_model);
 

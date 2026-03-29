@@ -55,6 +55,27 @@ public sealed class HomeAssistantLlTokenClient : AbstractHomeAssistantClient
         return Array.Empty<HaAreaLite>();
     }
 
+    public override async Task<IReadOnlyList<HaEntityStateLite>> GetSoilMoistureSensorsAsync(CancellationToken ct = default)
+    {
+        var json = await GetJsonAsync("api/states", ct);
+        if (json is null || json.Value.ValueKind != JsonValueKind.Array)
+            return Array.Empty<HaEntityStateLite>();
+
+        return ParseSoilMoistureSensors(json.Value);
+    }
+
+    public override async Task<HaEntityStateLite?> GetEntityStateAsync(string entityId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(entityId))
+            return null;
+
+        var json = await GetJsonAsync($"api/states/{entityId}", ct);
+        if (json is null || !TryParseEntityState(json.Value, out var entity))
+            return null;
+
+        return entity;
+    }
+
     public override async Task CreatePersistentNotificationAsync(
     string title,
     string message,
