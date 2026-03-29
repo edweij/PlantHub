@@ -55,8 +55,16 @@
         {
             <div class="ph-plant-water">
                 <span class="ph-water-label">Moisture sensor</span>
-                <span class="ph-water-date ph-water-date-truncate" title="@Plant.SensorEntityId">@Plant.SensorEntityId</span>
+                <span class="ph-water-date ph-water-date-truncate" title="@SensorTitle">@DisplaySensorName</span>
             </div>
+
+            @if (!string.IsNullOrWhiteSpace(CurrentMoistureDisplay))
+            {
+                <div class="ph-plant-water">
+                    <span class="ph-water-label">Current moisture</span>
+                    <span class="ph-water-date">@CurrentMoistureDisplay</span>
+                </div>
+            }
 
             @if (Plant.MoistureLowPercent is not null)
             {
@@ -184,8 +192,11 @@
     [Parameter] public EventCallback<Plant> OnDelete { get; set; }
     [Parameter] public EventCallback<Plant> OnEditImage { get; set; }
     [Parameter] public EventCallback<Plant> OnCheckNow { get; set; }
+    [Parameter] public string? SensorName { get; set; }
+    [Parameter] public string? CurrentMoistureDisplay { get; set; }
 
-    
+    private string SensorTitle => SensorName ?? Plant.SensorEntityId ?? string.Empty;
+    private string DisplaySensorName => Truncate(SensorTitle, 25);
 
     private static string GetInitials(string? s)
     {
@@ -209,5 +220,16 @@
 
         // Små krukor: visa i ml
         return $"{ml} ml";
+    }
+
+    private static string Truncate(string value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length <= maxLength)
+            return value;
+
+        if (maxLength <= 3)
+            return value[..maxLength];
+
+        return value[..(maxLength - 3)] + "...";
     }
 }

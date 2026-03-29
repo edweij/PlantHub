@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Microsoft.EntityFrameworkCore
 @using PlantHub.Web.Domain
 @using PlantHub.Web.Infrastructure
@@ -26,14 +27,16 @@ else
                 </div>
 
                 <div class="ph-plant-grid">
-                    @foreach (var plant in _sensorPlants.OrderBy(p => p.Name))
-                    {
-                        <PlantCard Plant="plant"
-                                   AreaName="@(ResolveAreaName(plant.AreaId))"
-                                   StatusBadge="@(GetStatusBadge(plant))"
-                                   OnClick="@(p => OpenDetails(p))"
-                                   OnEdit="@(p => HandleEditPlantClick(p))"
-                                   OnWaterNow="@(p => MarkWateredNow(p))"
+                        @foreach (var plant in _sensorPlants.OrderBy(p => p.Name))
+                        {
+                            <PlantCard Plant="plant"
+                                       AreaName="@(ResolveAreaName(plant.AreaId))"
+                                       SensorName="@(ResolveSensorName(plant))"
+                                       CurrentMoistureDisplay="@(ResolveCurrentMoistureDisplay(plant))"
+                                       StatusBadge="@(GetStatusBadge(plant))"
+                                       OnClick="@(p => OpenDetails(p))"
+                                       OnEdit="@(p => HandleEditPlantClick(p))"
+                                       OnWaterNow="@(p => MarkWateredNow(p))"
                                    OnEditImage="OpenImageModal"
                                    OnDelete="@(p => RequestDelete(p))" />
                     }
@@ -350,6 +353,22 @@ else
         => $"Summer: {g.IntervalDaysSummer} d • Winter: {g.IntervalDaysWinter} d";
 
     private string? ResolveAreaName(string? areaId) => Areas.SingleOrDefault(a => a.Id == areaId)?.Name ?? areaId;
+
+    private string? ResolveSensorName(Plant plant)
+        => SoilMoistureSensors.SingleOrDefault(s => s.EntityId == plant.SensorEntityId)?.FriendlyName
+           ?? plant.SensorEntityId;
+
+    private string? ResolveCurrentMoistureDisplay(Plant plant)
+    {
+        var sensor = SoilMoistureSensors.SingleOrDefault(s => s.EntityId == plant.SensorEntityId);
+        if (sensor is null || string.IsNullOrWhiteSpace(sensor.State))
+            return null;
+
+        if (double.TryParse(sensor.State, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+            return $"{value:0.#}{sensor.UnitOfMeasurement}";
+
+        return $"{sensor.State}{sensor.UnitOfMeasurement}";
+    }
 
     private string? GetStatusBadge(Plant p)
     {
