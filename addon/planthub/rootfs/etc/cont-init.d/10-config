@@ -2,6 +2,7 @@
 set -e
 
 OPTIONS_FILE="/data/options.json"
+ENV_DIR="/var/run/s6/container_environment"
 
 if [ ! -f "$OPTIONS_FILE" ]; then
   echo "[PlantHub] No options.json found, using defaults"
@@ -19,25 +20,33 @@ TOKEN="$(jq -r '.token // empty' "$OPTIONS_FILE")"
 ALLOW_PUSH="$(jq -r '.allow_push // false' "$OPTIONS_FILE")"
 PUSH_ENABLED="$(jq -r '.push_enabled // false' "$OPTIONS_FILE")"
 
-export PLANTHUB__LOG_LEVEL="$LOG_LEVEL"
-export HA__BaseUrl="$BASE_URL"
-export HA__Token="$TOKEN"
-export Notifications__AllowPush="$ALLOW_PUSH"
-export Notifications__PushEnabled="$PUSH_ENABLED"
+write_env() {
+  name="$1"
+  value="$2"
+  export "$name=$value"
+  mkdir -p "$ENV_DIR"
+  printf '%s' "$value" > "$ENV_DIR/$name"
+}
+
+write_env "PLANTHUB__LOG_LEVEL" "$LOG_LEVEL"
+write_env "HA__BaseUrl" "$BASE_URL"
+write_env "HA__Token" "$TOKEN"
+write_env "Notifications__AllowPush" "$ALLOW_PUSH"
+write_env "Notifications__PushEnabled" "$PUSH_ENABLED"
 
 if [ -n "$BASE_URL" ]; then
-  export PLANTHUB__BASE_URL="$BASE_URL"
+  write_env "PLANTHUB__BASE_URL" "$BASE_URL"
 fi
 
 if [ -n "$TOKEN" ]; then
-  export PLANTHUB__TOKEN="$TOKEN"
+  write_env "PLANTHUB__TOKEN" "$TOKEN"
 fi
 
 for i in $(jq -r '.push_notify_services // [] | to_entries[] | "\(.key)=\(.value)"' "$OPTIONS_FILE"); do
   idx="${i%%=*}"
   value="${i#*=}"
-  export "Notifications__PushNotifyServices__${idx}=${value}"
+  write_env "Notifications__PushNotifyServices__${idx}" "$value"
 done
 
-echo "[PlantHub] Configuration loaded (log_level=$LOG_LEVEL, push_enabled=$PUSH_ENABLED)"
+echo "[PlantHub] Configuration loaded (log_level=$LOG_LEVEL, push_enabled=$PUSH_ENABLED, allow_push=$ALLOW_PUSH)"
 exit 0
