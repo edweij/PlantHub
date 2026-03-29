@@ -48,3 +48,4 @@ RUN chmod +x /etc/services.d/planthub/run /etc/cont-init.d/10-config || true
 ENV ASPNETCORE_URLS=http://0.0.0.0:8099
 ENV ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 ENV DOTNET_EnableDiagnostics=0
+ENV PLANTHUB__ADDON_VERSION=${BUILD_VERSION}

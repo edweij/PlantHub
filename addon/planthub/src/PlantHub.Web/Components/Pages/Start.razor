@@ -1,5 +1,6 @@
-﻿@page "/"
+@page "/"
 @rendermode InteractiveServer
+@using System.Reflection
 @using PlantHub.Web.Components.Plants
 
 <PageTitle>PlantHub</PageTitle>
@@ -16,7 +17,11 @@
                             AriaLabel="Add watering group"
                             OnClick="HandleAddWateringGroupClick" />
         </PhTooltip>
-        
+        <PhTooltip Text="About PlantHub">
+            <PhActionButton Icon="ℹ️"
+                            AriaLabel="About PlantHub"
+                            OnClick="HandleAboutClick" />
+        </PhTooltip>
     </section>
 
     <section class="ph-content">
@@ -32,8 +37,8 @@
                    IsOpenChanged="OnAddPlantModalChanged" />
 
 <AddEditWateringGroupModal IsOpen="_showAddWateringGroupModal"
-                       IsOpenChanged="OnAddWateringGroupModalChanged"
-                       OnSave="HandleAddWateringGroupSave" />
+                           IsOpenChanged="OnAddWateringGroupModalChanged"
+                           OnSave="HandleAddWateringGroupSave" />
 
 <PhConfirmModal IsOpen="_deleteGroupOpen"
                 IsOpenChanged="@(v => _deleteGroupOpen = v)"
@@ -44,33 +49,65 @@
                 OnConfirm="ConfirmDeleteGroupAsync"
                 OnCancel="CancelDeleteGroup" />
 
+@if (_showAboutModal)
+{
+    <div class="ph-modal" role="dialog" aria-modal="true" aria-labelledby="about-modal-title" @onkeydown="HandleAboutKeyDown">
+        <div class="ph-modal-backdrop" @onclick="CloseAbout"></div>
+
+        <div class="ph-modal-dialog ph-modal-dialog--sm ph-modal-dialog--elevated" tabindex="-1">
+            <div class="ph-modal-header">
+                <h2 id="about-modal-title" class="ph-modal-title">About PlantHub</h2>
+            </div>
+
+            <div class="ph-modal-body">
+                <p>PlantHub helps you organize your plants, group them into watering schedules, and send reminders when it is time to water them.</p>
+                <p><strong>Installed version:</strong> @_installedVersion</p>
+            </div>
+
+            <div class="ph-modal-footer">
+                <button class="ph-btn" @onclick="CloseAbout">Close</button>
+                <button class="ph-btn ph-btn-primary" @onclick="SendTestNotificationAsync" disabled="@_sendingTestNotification">
+                    @(_sendingTestNotification ? "Sending..." : "Test notifications")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 <PhToastHost />
 
 @code {
     [Inject] public IHomeAssistantClient HaClient { get; set; } = default!;
     [Inject] public IWateringGroupService WateringGroupService { get; set; } = default!;
     [Inject] public IPlantService PlantService { get; set; } = default!;
+    [Inject] public PlantHubNotificationService NotificationService { get; set; } = default!;
     [Inject] PhToastService Toasts { get; set; } = default!;
 
     private bool _showAddPlantModal;
     private bool _showAddWateringGroupModal;
+    private bool _showAboutModal;
+    private bool _sendingTestNotification;
     private IReadOnlyList<HaAreaLite> _areas = Array.Empty<HaAreaLite>();
     private IReadOnlyList<WateringGroup> _wateringGroups = Array.Empty<WateringGroup>();
+    private string _installedVersion = "unknown";
 
     private PlantGroupsList? _plantGroupsListRef;
 
     private bool _deleteGroupOpen;
     private WateringGroup? _pendingGroupDelete;
+    private WateringGroup? _prefillGroupForNewPlant;
 
     protected override async Task OnInitializedAsync()
     {
+        _installedVersion = ResolveInstalledVersion();
+
         if (HaClient.IsEnabled)
         {
             _areas = await HaClient.GetAreasAsync();
-        }        
-        await LoadWateringGroupsAsync();
-    }    
+        }
 
+        await LoadWateringGroupsAsync();
+    }
 
     private void OnAddWateringGroupModalChanged(bool value)
     {
@@ -90,21 +127,30 @@
         return Task.CompletedTask;
     }
 
+    private Task HandleAboutClick()
+    {
+        _showAboutModal = true;
+        return Task.CompletedTask;
+    }
+
+    private void CloseAbout()
+    {
+        _showAboutModal = false;
+    }
+
     private async Task ConfirmDeleteGroupAsync()
     {
         if (_pendingGroupDelete is null) return;
 
-        // soft delete via service
         await WateringGroupService.DeleteAsync(_pendingGroupDelete);
         Toasts.Show($"'{_pendingGroupDelete.Name}' deleted", PhToastLevel.Warning);
 
-
-        // Nollställ state och ladda om listan
         _pendingGroupDelete = null;
         if (_plantGroupsListRef is not null)
         {
             await _plantGroupsListRef.ReloadAsync();
         }
+
         StateHasChanged();
     }
 
@@ -120,12 +166,11 @@
         var saved = await WateringGroupService.AddAsync(entity);
         Toasts.Show($"Watering group '{saved.Name}' added 🌱", PhToastLevel.Success);
 
-
         Console.WriteLine(
             $"[PlantHub] Saved watering group #{saved.Id}: {saved.Name} " +
             $"(summer={saved.IntervalDaysSummer}, winter={saved.IntervalDaysWinter})");
 
-        await LoadWateringGroupsAsync();     
+        await LoadWateringGroupsAsync();
 
         if (_plantGroupsListRef is not null)
         {
@@ -137,8 +182,6 @@
     {
         _wateringGroups = (await WateringGroupService.GetAllAsync()).ToList();
     }
-
-    private WateringGroup? _prefillGroupForNewPlant;
 
     private void HandleAddPlantForGroup(WateringGroup group)
     {
@@ -157,18 +200,66 @@
 
     private Task HandleAddPlantClick()
     {
-        _showAddPlantModal = true; // eller vad du nu använder
+        _showAddPlantModal = true;
         return Task.CompletedTask;
     }
 
     private async Task HandleAddPlantSave(CreatePlantModel model)
     {
-        // Formvalidering har redan skett via EditForm + IValidatableObject
         var entity = model.ToEntity();
         var saved = await PlantService.AddAsync(entity);
         Toasts.Show($"Plant '{saved.Name}' added 🌱", PhToastLevel.Success);
 
         Console.WriteLine($"[PlantHub] Saved plant #{saved.Id}: {saved.Name} (WG={saved.WateringGroupId}, Area={saved.AreaId}, Vol={saved.PotVolumeMl})");
-        
+    }
+
+    private Task HandleAboutKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            CloseAbout();
+
+        return Task.CompletedTask;
+    }
+
+    private async Task SendTestNotificationAsync()
+    {
+        if (_sendingTestNotification)
+            return;
+
+        _sendingTestNotification = true;
+
+        try
+        {
+            await NotificationService.NotifyAsync(
+                "PlantHub test notification",
+                "This is a test from the PlantHub About dialog.");
+
+            Toasts.Show("Test notification sent", PhToastLevel.Success);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlantHub] Failed to send test notification: {ex}");
+            Toasts.Show("Failed to send test notification", PhToastLevel.Error);
+        }
+        finally
+        {
+            _sendingTestNotification = false;
+        }
+    }
+
+    private static string ResolveInstalledVersion()
+    {
+        var addonVersion = Environment.GetEnvironmentVariable("PLANTHUB__ADDON_VERSION");
+        if (!string.IsNullOrWhiteSpace(addonVersion))
+            return addonVersion;
+
+        var informational = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informational))
+            return informational;
+
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
     }
 }
