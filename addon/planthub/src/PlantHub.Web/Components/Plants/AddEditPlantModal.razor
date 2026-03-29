@@ -134,6 +134,7 @@
     [Parameter] public IEnumerable<HaEntityStateLite> SoilMoistureSensors { get; set; } = Enumerable.Empty<HaEntityStateLite>();
     [Parameter] public EventCallback<CreatePlantModel> OnSave { get; set; }
     [Parameter] public Plant? ExistingPlant { get; set; }
+    [Parameter] public CreatePlantModel? InitialModel { get; set; }
 
     private CreatePlantModel _model = new();
     private EditContext? _editContext;
@@ -195,10 +196,7 @@
             }
             else
             {
-                _model = CreateEmptyModelForAdd();
-
-                if (DefaultWateringGroupId is not null)
-                    _model.WateringGroupId = DefaultWateringGroupId;
+                _model = CreateInitialModelForAdd();
             }
 
             _editContext = new EditContext(_model);
@@ -213,6 +211,18 @@
             Mode = WateringMode.Schedule
         };
 
+    private CreatePlantModel CreateInitialModelForAdd()
+    {
+        var model = InitialModel is null
+            ? CreateEmptyModelForAdd()
+            : CloneModel(InitialModel);
+
+        if (model.Mode == WateringMode.Schedule && DefaultWateringGroupId is not null && !model.WateringGroupId.HasValue)
+            model.WateringGroupId = DefaultWateringGroupId;
+
+        return model;
+    }
+
     private CreatePlantModel MapFromEntity(Plant p)
         => new()
         {
@@ -226,6 +236,23 @@
             SensorEntityId = p.SensorEntityId,
             MoistureLowPercent = p.MoistureLowPercent,
             MoistureHighPercent = p.MoistureHighPercent
+        };
+
+    private static CreatePlantModel CloneModel(CreatePlantModel model)
+        => new()
+        {
+            Name = model.Name,
+            LatinName = model.LatinName,
+            AreaId = model.AreaId,
+            Mode = model.Mode,
+            WateringGroupId = model.WateringGroupId,
+            PotVolumeMl = model.PotVolumeMl,
+            PotDiameterCm = model.PotDiameterCm,
+            PotHeightCm = model.PotHeightCm,
+            Notes = model.Notes,
+            SensorEntityId = model.SensorEntityId,
+            MoistureLowPercent = model.MoistureLowPercent,
+            MoistureHighPercent = model.MoistureHighPercent
         };
 
     private async Task HandleValidSubmit()

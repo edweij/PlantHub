@@ -17,6 +17,11 @@
                             AriaLabel="Add watering group"
                             OnClick="HandleAddWateringGroupClick" />
         </PhTooltip>
+        <PhTooltip Text="Detect soil moisture sensors">
+            <PhActionButton Icon="🔍"
+                            AriaLabel="Detect soil moisture sensors"
+                            OnClick="HandleDetectSensorsClick" />
+        </PhTooltip>
         <PhTooltip Text="About PlantHub">
             <PhActionButton Icon="ℹ️"
                             AriaLabel="About PlantHub"
@@ -38,6 +43,7 @@
                    SoilMoistureSensors="_soilMoistureSensors"
                    WateringGroups="_wateringGroups"
                    DefaultWateringGroupId="_prefillGroupForNewPlant?.Id"
+                   InitialModel="_prefillPlantModel"
                    OnSave="HandleAddPlantSave"
                    IsOpenChanged="OnAddPlantModalChanged" />
 
@@ -79,6 +85,56 @@
     </div>
 }
 
+@if (_showSensorDetectionModal)
+{
+    <div class="ph-modal" role="dialog" aria-modal="true" aria-labelledby="sensor-detection-title" @onkeydown="HandleSensorDetectionKeyDown">
+        <div class="ph-modal-backdrop" @onclick="CloseSensorDetection"></div>
+
+        <div class="ph-modal-dialog ph-modal-dialog--sm ph-modal-dialog--elevated" tabindex="-1">
+            <div class="ph-modal-header">
+                <h2 id="sensor-detection-title" class="ph-modal-title">Detected sensors</h2>
+                <button type="button" class="ph-icon-btn" @onclick="CloseSensorDetection">✕</button>
+            </div>
+
+            <div class="ph-modal-body">
+                @if (_unconfiguredSoilMoistureSensors.Count == 0)
+                {
+                    <p>No unconfigured soil moisture sensors were found.</p>
+                }
+                else
+                {
+                    <p>PlantHub found these soil moisture sensors that are not monitored yet.</p>
+
+                    <div class="ph-detected-sensor-list">
+                        @foreach (var sensor in _unconfiguredSoilMoistureSensors)
+                        {
+                            <div class="ph-detected-sensor-item">
+                                <div class="ph-detected-sensor-copy">
+                                    <strong>@sensor.FriendlyName</strong>
+                                    <div class="ph-hint">@sensor.EntityId</div>
+                                    @if (!string.IsNullOrWhiteSpace(sensor.State))
+                                    {
+                                        <div class="ph-hint">Current value: @sensor.State@sensor.UnitOfMeasurement</div>
+                                    }
+                                </div>
+
+                                <button class="ph-btn ph-btn-primary"
+                                        @onclick="() => StartMonitoringSensor(sensor)">
+                                    Monitor
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="ph-modal-footer">
+                <button class="ph-btn" @onclick="CloseSensorDetection">Close</button>
+            </div>
+        </div>
+    </div>
+}
+
 <PhToastHost />
 
 @code {
@@ -91,9 +147,11 @@
     private bool _showAddPlantModal;
     private bool _showAddWateringGroupModal;
     private bool _showAboutModal;
+    private bool _showSensorDetectionModal;
     private bool _sendingTestNotification;
     private IReadOnlyList<HaAreaLite> _areas = Array.Empty<HaAreaLite>();
     private IReadOnlyList<HaEntityStateLite> _soilMoistureSensors = Array.Empty<HaEntityStateLite>();
+    private List<HaEntityStateLite> _unconfiguredSoilMoistureSensors = new();
     private IReadOnlyList<WateringGroup> _wateringGroups = Array.Empty<WateringGroup>();
     private string _installedVersion = "unknown";
 
@@ -102,6 +160,7 @@
     private bool _deleteGroupOpen;
     private WateringGroup? _pendingGroupDelete;
     private WateringGroup? _prefillGroupForNewPlant;
+    private CreatePlantModel? _prefillPlantModel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,9 +199,45 @@
         return Task.CompletedTask;
     }
 
+    private async Task HandleDetectSensorsClick()
+    {
+        if (!HaClient.IsEnabled)
+        {
+            Toasts.Show("Home Assistant integration is not enabled.", PhToastLevel.Warning);
+            return;
+        }
+
+        _soilMoistureSensors = await HaClient.GetSoilMoistureSensorsAsync();
+
+        var configuredSensorIds = (await PlantService.ListAsync())
+            .Where(p => p.Mode == WateringMode.Sensor)
+            .Select(p => p.SensorEntityId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        _unconfiguredSoilMoistureSensors = _soilMoistureSensors
+            .Where(sensor => !configuredSensorIds.Contains(sensor.EntityId))
+            .OrderBy(sensor => sensor.FriendlyName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (_unconfiguredSoilMoistureSensors.Count == 0)
+        {
+            Toasts.Show("No new soil moisture sensors found.", PhToastLevel.Info);
+            return;
+        }
+
+        _showSensorDetectionModal = true;
+    }
+
     private void CloseAbout()
     {
         _showAboutModal = false;
+    }
+
+    private void CloseSensorDetection()
+    {
+        _showSensorDetectionModal = false;
     }
 
     private async Task ConfirmDeleteGroupAsync()
@@ -202,11 +297,13 @@
         if (!value)
         {
             _prefillGroupForNewPlant = null;
+            _prefillPlantModel = null;
         }
     }
 
     private Task HandleAddPlantClick()
     {
+        _prefillPlantModel = null;
         _showAddPlantModal = true;
         return Task.CompletedTask;
     }
@@ -218,6 +315,13 @@
         Toasts.Show($"Plant '{saved.Name}' added 🌱", PhToastLevel.Success);
 
         Console.WriteLine($"[PlantHub] Saved plant #{saved.Id}: {saved.Name} (WG={saved.WateringGroupId}, Area={saved.AreaId}, Vol={saved.PotVolumeMl})");
+
+        _prefillPlantModel = null;
+
+        if (_plantGroupsListRef is not null)
+        {
+            await _plantGroupsListRef.ReloadAsync();
+        }
     }
 
     private Task HandleAboutKeyDown(KeyboardEventArgs e)
@@ -225,6 +329,31 @@
         if (e.Key == "Escape")
             CloseAbout();
 
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSensorDetectionKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            CloseSensorDetection();
+
+        return Task.CompletedTask;
+    }
+
+    private Task StartMonitoringSensor(HaEntityStateLite sensor)
+    {
+        _prefillGroupForNewPlant = null;
+        _prefillPlantModel = new CreatePlantModel
+        {
+            Name = BuildSuggestedPlantName(sensor),
+            Mode = WateringMode.Sensor,
+            SensorEntityId = sensor.EntityId,
+            MoistureLowPercent = 30,
+            MoistureHighPercent = 35
+        };
+
+        _showSensorDetectionModal = false;
+        _showAddPlantModal = true;
         return Task.CompletedTask;
     }
 
@@ -268,5 +397,16 @@
             return informational;
 
         return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+    }
+
+    private static string BuildSuggestedPlantName(HaEntityStateLite sensor)
+    {
+        var candidate = sensor.FriendlyName
+            .Replace("soil moisture", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("soil_moisture", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("sensor", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Trim(' ', '-', '_', '(', ')');
+
+        return string.IsNullOrWhiteSpace(candidate) ? sensor.FriendlyName : candidate;
     }
 }
