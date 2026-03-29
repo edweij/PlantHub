@@ -83,7 +83,14 @@ public sealed class HomeAssistantLlTokenClient : AbstractHomeAssistantClient
         if (!IsEnabled) return;
 
         var parts = notifyService.Split('.', 2);
-        if (parts.Length != 2) return;
+        if (parts.Length != 2)
+        {
+            Console.WriteLine($"[PlantHub] Invalid notify service '{notifyService}'. Expected format domain.service");
+            return;
+        }
+
+        var relativePath = $"api/services/{parts[0]}/{parts[1]}";
+        Console.WriteLine($"[PlantHub] Push notifyService='{notifyService}' -> '{relativePath}'");
 
         var payload = new
         {
@@ -91,9 +98,6 @@ public sealed class HomeAssistantLlTokenClient : AbstractHomeAssistantClient
             message
         };
 
-        await PostJsonAsync(
-            $"api/services/{parts[0]}/{parts[1]}",
-            payload,
-            ct);
+        await PostJsonAsync(relativePath, payload, ct);
     }
 }

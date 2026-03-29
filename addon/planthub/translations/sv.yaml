@@ -1,0 +1,19 @@
+configuration:
+  log_level:
+    name: Loggnivå
+    description: Styr hur mycket addonet skriver i loggen. Använd info normalt och debug vid felsökning.
+  base_url:
+    name: Home Assistant-bas-URL
+    description: Valfri URL till din Home Assistant-instans för direkt token-läge. Lämna tom i normalt addon-läge.
+  token:
+    name: Home Assistant-token
+    description: Valfri long-lived access token som används tillsammans med bas-URL i direktläge. Lämna tom i normalt addon-läge.
+  allow_push:
+    name: Tillåt pushnotiser
+    description: Huvudbrytare som tillåter PlantHub att skicka pushnotiser utöver vanliga persistent notifications i Home Assistant.
+  push_enabled:
+    name: Aktivera pushnotiser
+    description: Slår av eller på pushfunktionen. Den måste vara aktiverad tillsammans med Tillåt pushnotiser.
+  push_notify_services:
+    name: Pushnotistjänster
+    description: Lista med Home Assistant notify-tjänster som PlantHub ska anropa, till exempel notify.mobile_app_ew_mobil.

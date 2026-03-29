@@ -107,7 +107,14 @@ public sealed class HomeAssistantSupervisorClient : AbstractHomeAssistantClient
 
         // notify.mobile_app_xxx → notify / mobile_app_xxx
         var parts = notifyService.Split('.', 2);
-        if (parts.Length != 2) return;
+        if (parts.Length != 2)
+        {
+            Console.WriteLine($"[PlantHub] (supervisor) Invalid notify service '{notifyService}'. Expected format domain.service");
+            return;
+        }
+
+        var relativePath = $"services/{parts[0]}/{parts[1]}";
+        Console.WriteLine($"[PlantHub] (supervisor) Push notifyService='{notifyService}' -> '{relativePath}'");
 
         var payload = new
         {
@@ -115,9 +122,6 @@ public sealed class HomeAssistantSupervisorClient : AbstractHomeAssistantClient
             message
         };
 
-        await PostJsonAsync(
-            $"services/{parts[0]}/{parts[1]}",
-            payload,
-            ct);
+        await PostJsonAsync(relativePath, payload, ct);
     }
 }

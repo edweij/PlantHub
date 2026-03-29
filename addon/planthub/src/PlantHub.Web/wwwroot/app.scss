@@ -4,21 +4,21 @@
 :root {
     --bg: #ffffff;
     --fg: #0f172a; /* slate-900 */
-    --muted: #64748b; /* slate-500 */
+    --muted: #5f7468; /* soft green-gray */
     --accent: #16a34a; /* green-600 */
-    --surface: #f1f5f9; /* slate-100 */
-    --border: #e5e7eb; /* gray-200 */
+    --surface: #f2f7f2; /* soft green-tinted surface */
+    --border: #dce7dc; /* soft green border */
 }
 
 /* 2) Dark mode via prefers-color-scheme */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #0b1020;
+        --bg: #0d1511;
         --fg: #e5e7eb;
-        --muted: #94a3b8;
+        --muted: #8ba095;
         --accent: #22c55e; /* green-500 */
-        --surface: #111827; /* gray-900 */
-        --border: #1f2937; /* gray-800 */
+        --surface: #132019; /* green-tinted dark surface */
+        --border: #203126; /* green-tinted dark border */
     }
 }
 
@@ -26,19 +26,19 @@
 html[data-theme="light"] {
     --bg: #ffffff;
     --fg: #0f172a;
-    --muted: #64748b;
+    --muted: #5f7468;
     --accent: #16a34a;
-    --surface: #f1f5f9;
-    --border: #e5e7eb;
+    --surface: #f2f7f2;
+    --border: #dce7dc;
 }
 
 html[data-theme="dark"] {
-    --bg: #0b1020;
+    --bg: #0d1511;
     --fg: #e5e7eb;
-    --muted: #94a3b8;
+    --muted: #8ba095;
     --accent: #22c55e;
-    --surface: #111827;
-    --border: #1f2937;
+    --surface: #132019;
+    --border: #203126;
 }
 
 /* 4) Reset + layout */

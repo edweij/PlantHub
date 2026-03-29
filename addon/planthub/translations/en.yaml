@@ -1,0 +1,19 @@
+configuration:
+  log_level:
+    name: Log level
+    description: Controls how much the add-on writes to its log output. Use info for normal use and debug when troubleshooting.
+  base_url:
+    name: Home Assistant base URL
+    description: Optional URL to your Home Assistant instance for direct token mode. Leave empty in normal add-on mode.
+  token:
+    name: Home Assistant token
+    description: Optional long-lived access token used together with the base URL in direct token mode. Leave empty in normal add-on mode.
+  allow_push:
+    name: Allow push notifications
+    description: Master switch that allows PlantHub to send push notifications in addition to persistent notifications inside Home Assistant.
+  push_enabled:
+    name: Enable push notifications
+    description: Turns the push notification feature on or off. This must be enabled together with Allow push notifications.
+  push_notify_services:
+    name: Push notification services
+    description: List of Home Assistant notify services PlantHub should call, for example notify.mobile_app_ew_mobil.

@@ -112,11 +112,17 @@ public abstract class AbstractHomeAssistantClient : IHomeAssistantClient
         if (!IsEnabled || BaseUri is null || Token is null)
             return;
 
+        var targetUri = new Uri(BaseUri, relativePath);
+        var payloadJson = JsonSerializer.Serialize(payload);
+        Console.WriteLine($"[PlantHub] POST {targetUri} payload={payloadJson}");
+
         using var http = new HttpClient { BaseAddress = BaseUri };
         http.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
 
         using var resp = await http.PostAsJsonAsync(relativePath, payload, ct);
+        var responseBody = await resp.Content.ReadAsStringAsync(ct);
+        Console.WriteLine($"[PlantHub] POST {targetUri} -> HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}; body={responseBody}");
         resp.EnsureSuccessStatusCode();
     }
 
